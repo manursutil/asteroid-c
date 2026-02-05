@@ -50,7 +50,6 @@ void initAsteroids() {
     }
 }
 
-// TODO: Finish this
 void resolveCollisions(Asteroid* a, Asteroid* b) {
     // Find unit normal and unit tangent vectors
     Vector2 delta = Vector2Subtract(a->pos, b->pos);
@@ -62,24 +61,46 @@ void resolveCollisions(Asteroid* a, Asteroid* b) {
     float dist = sqrtf(dsq);
     Vector2 unitNormal = Vector2Scale(delta, 1.0f/dist);
     Vector2 unitTangent = (Vector2){-unitNormal.y, unitNormal.x};
+
+    // Positional correction
+    float overlap = rsum - dist;
+    float invMa = (a->mass > 0) ? 1.0f/a->mass : 0.0f;
+    float invMb = (b->mass > 0) ? 1.0f/b->mass : 0.0f;
+    float invSum = invMa + invMb;
+    if (invSum > 0.0f) {
+        Vector2 correction = Vector2Scale(unitNormal, overlap / invSum);
+        a->pos = Vector2Add(a->pos, Vector2Scale(correction, invMa));
+        b->pos = Vector2Subtract(b->pos, Vector2Scale(correction, invMb));
+    }
     
     // Create initial (before the collision velovty vector, v1 and v2) -- Already done
-    // Resolve the velocity vectors (v1 and v2) into normal and angential components. Project the velocity vectors ontro the unit normal and the unit tangent vectors by taking the dot product of the vlocity vectors with the normal and unit tangent vectors. Vn and Vt are scalars.
-    float velANormal = Vector2DotProduct(a->vel, unitNormal);
-    float velATangent = Vector2DotProduct(a->vel, unitTangent);
-    float velBNormal = Vector2DotProduct(b->vel, unitNormal);
-    float velBTangent = Vector2DotProduct(b->vel, unitTangent);
+    // Resolve the velocity vectors (v1 and v2) into normal and angential components. Project the velocity vectors onto the unit normal and the unit tangent vectors by taking the dot product of the vlocity vectors with the normal and unit tangent vectors. Vn and Vt are scalars.
+    float va_n = Vector2DotProduct(a->vel, unitNormal);
+    float va_t = Vector2DotProduct(a->vel, unitTangent);
+    float vb_n = Vector2DotProduct(b->vel, unitNormal);
+    float vb_t = Vector2DotProduct(b->vel, unitTangent);
 
     // Find the new tangential velocities (after the collision). They do not change: v1_t' = v1_t, v2_t' = v2_t.
     // Find the new normal velocities (after the collision ("prime")). Same as one-dimensional collision formulas:
     // v1_n' = v1_n * (m1 - m2) + 2*m2*v2_n / m1 + m2
     // v2_n' = v2_n * (m1 - m2) + 2*m1*v1_n / m1 + m2
+    float va_np = (va_n * (a->mass - b->mass) + 2.0f*b->mass*vb_n) / (a->mass + b->mass);
+    float vb_np = (vb_n * (a->mass - b->mass) + 2.0f*a->mass*va_n) / (a->mass + b->mass);
 
     // Convert the scalar normal and tangential velocities into vectors. Multiply the unit normal vector by the scalar normal velocity, same for the tangential component
+    Vector2 va_np_vector = Vector2Scale(unitNormal, va_np);
+    Vector2 va_tp_vector = Vector2Scale(unitTangent, va_t);
+    Vector2 vb_np_vector = Vector2Scale(unitNormal, vb_np);
+    Vector2 vb_tp_vector = Vector2Scale(unitTangent, vb_t);
 
-    // Find the final volicyt vectors by adding the normal and tangential components for each object:
+    // Find the final velocity vectors by adding the normal and tangential components for each object:
     // v1' = v1_n' + v1_t'
     // v2' = v2_n' + v2_t'
+    Vector2 velFinal_A = Vector2Add(va_np_vector, va_tp_vector);
+    Vector2 velFinal_B = Vector2Add(vb_np_vector, vb_tp_vector);
+
+    a->vel = velFinal_A;
+    b->vel = velFinal_B;
 }
 
 void checkCollisions() {
@@ -87,19 +108,8 @@ void checkCollisions() {
         for (int j = i + 1; j < NUM_ASTEROIDS; j++) {
             Asteroid *a = &ASTEROIDS[i];
             Asteroid *b = &ASTEROIDS[j];
-
-            float dx = a->pos.x - b->pos.x;
-            float dy = a->pos.y - b->pos.y;
-            float dsq = dx*dx + dy*dy;
-            float radiusSum = a->radius + b->radius;
-
-            // TODO: Better collision handling
-            if (dsq < radiusSum * radiusSum) {
-                a->vel.x *= -1;
-                a->vel.y *= -1;
-                b->vel.x *= -1;
-                b->vel.x *= -1;
-            }
+            
+            resolveCollisions(a, b);
         }
     }
 }
