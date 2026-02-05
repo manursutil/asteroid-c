@@ -18,35 +18,36 @@ typedef struct {
     int vx, vy;
 } Velocity;
 
-// TODO: Add mass for better collisions
 typedef struct {
     Vector2 pos;
     int sides;
     float radius, rotation;
-    Velocity v; // TODO: Change Velocity struct to Raylib's Vector2
+    Vector2 vel;
+    float mass;
 } Asteroid;
 
 typedef struct {
     Vector2 pos;
     float radius;
-    Velocity v;
+    Vector2 vel;
 } Spaceship;
 
 Asteroid ASTEROIDS[NUM_ASTEROIDS];
 
-Velocity getRandV() {
+// TODO: Pick random directions instead of 4 
+Vector2 getRandV() {
 	int choice = rand() % 4;
 	switch (choice) {
 		case 0:
-			return (Velocity){0,-1}; // up
+			return (Vector2){0,-1}; // up
 		case 1:
-			return (Velocity){0,1}; // down
+			return (Vector2){0,1}; // down
 		case 2:
-			return (Velocity){-1,0}; // left
+			return (Vector2){-1,0}; // left
 		case 3:
-			return (Velocity){1,0}; // right
+			return (Vector2){1,0}; // right
 	}
-	return (Velocity){0, 0};
+	return (Vector2){0, 0};
 }
 
 void initAsteroids() {
@@ -74,10 +75,10 @@ void checkCollisions() {
 
             // TODO: Better collision handling
             if (dsq < radiusSum * radiusSum) {
-                a->v.vx *= -1;
-                a->v.vy *= -1;
-                b->v.vx *= -1;
-                b->v.vy *= -1;
+                a->vel.x *= -1;
+                a->vel.y *= -1;
+                b->vel.x *= -1;
+                b->vel.x *= -1;
             }
         }
     }
@@ -92,21 +93,21 @@ void MoveSpaceship(Spaceship* s) {
 
 void UpdateSpaceship(Spaceship* s) {
     MoveSpaceship(s);
-    s->pos.x += s->v.vx * VEL;
-    s->pos.y += s->v.vy * VEL;
+    s->pos.x += s->vel.x * VEL;
+    s->pos.y += s->vel.y * VEL;
 }
 
 void UpdateAsteroids() {
     for (int i = 0; i < NUM_ASTEROIDS; i++) {
         Asteroid *a = &ASTEROIDS[i];
 		
-		a->pos.x += a->v.vx * SCALE;
-		a->pos.y += a->v.vy * SCALE;
+		a->pos.x += a->vel.x * SCALE;
+		a->pos.y += a->vel.y * SCALE;
 
         if (a->pos.x - a->radius < 0 || a->pos.x + a->radius > WIDTH) {
-            a->v.vx *= -1;
+            a->vel.x *= -1;
         } else if (a->pos.y - a->radius < 0 || a->pos.y + a->radius > HEIGHT) {
-            a->v.vy *= -1;
+            a->vel.y *= -1;
         }
 
         a->rotation += SCALE;
@@ -139,7 +140,7 @@ int main(void)
     Spaceship spaceship = (Spaceship) {
         (Vector2) {(float)WIDTH/2, (float)HEIGHT/2}, 
         10, 
-        (Velocity) {0,0}
+        (Vector2) {0,0}
     };
 
     int gameOver = 0;
