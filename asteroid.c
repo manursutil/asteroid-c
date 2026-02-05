@@ -4,6 +4,7 @@
 // TODO: Add screen wrap instead of bouncing
 
 #include "raylib.h"
+#include "raymath.h"
 
 #include <stdlib.h>
 
@@ -34,20 +35,9 @@ typedef struct {
 
 Asteroid ASTEROIDS[NUM_ASTEROIDS];
 
-// TODO: Pick random directions instead of 4 
 Vector2 getRandV() {
-	int choice = rand() % 4;
-	switch (choice) {
-		case 0:
-			return (Vector2){0,-1}; // up
-		case 1:
-			return (Vector2){0,1}; // down
-		case 2:
-			return (Vector2){-1,0}; // left
-		case 3:
-			return (Vector2){1,0}; // right
-	}
-	return (Vector2){0, 0};
+    float angle = (float)GetRandomValue(0, 369) * DEG2RAD;
+	return (Vector2){cosf(angle), sinf(angle)};
 }
 
 void initAsteroids() {
@@ -58,7 +48,8 @@ void initAsteroids() {
         float rotation = GetRandomValue(1, 5);
         pos.x = GetRandomValue(0 + radius, WIDTH - radius);
         pos.y = GetRandomValue(0 + radius, HEIGHT - radius);
-        ASTEROIDS[i] = (Asteroid){pos, sides, radius, rotation, getRandV()};
+        float mass = radius * radius;
+        ASTEROIDS[i] = (Asteroid){pos, sides, radius, rotation, getRandV(), mass};
     }
 }
 
