@@ -1,5 +1,4 @@
 // TODO: Check game over
-// TODO: Shooting
 // TODO: Break / Split asteroids
 
 #include "raylib.h"
@@ -28,7 +27,7 @@ typedef struct {
 typedef struct {
     Vector2 pos;
     float radius;
-    Vector2 vel;
+    Vector2 vel; // TODO: This is not used. Figure out what to do with this
 } Spaceship;
 
 typedef struct {
@@ -39,9 +38,10 @@ typedef struct {
 
 Asteroid ASTEROIDS[NUM_ASTEROIDS];
 Bullet BULLETS[NUM_BULLETS];
+int bulletActive[NUM_BULLETS];
 
 Vector2 getRandV() {
-    /* 
+    /*
     Returns a random unit vector (random direction)
     */
 
@@ -50,7 +50,7 @@ Vector2 getRandV() {
 }
 
 void initAsteroids() {
-    /* 
+    /*
     Initialize asteroids with random positions/sizes/sides and random directions
     */
 
@@ -127,7 +127,7 @@ void resolveCollisions(Asteroid* a, Asteroid* b) {
 }
 
 void checkCollisions() {
-    /* 
+    /*
     Check and resolve collisions for every unique asteroid pair
     */
 
@@ -142,7 +142,7 @@ void checkCollisions() {
 }
 
 void MoveSpaceship(Spaceship* s) {
-    /* 
+    /*
     Ship movement with keyboard (direct position changes)
     */
 
@@ -153,8 +153,8 @@ void MoveSpaceship(Spaceship* s) {
 }
 
 void UpdateSpaceship(Spaceship* s) {
-    /* 
-    Update ship state 
+    /*
+    Update ship state
     */
 
     MoveSpaceship(s);
@@ -162,8 +162,81 @@ void UpdateSpaceship(Spaceship* s) {
     s->pos.y += s->vel.y * VEL;
 }
 
+// TODO: Shooting
+// Mecánica de disparo:
+// 1. Obtener la posición actual de la nave espacial
+// 2. Comprobar si el jugador presiona la barra espaciadora
+// 3. Dibujar la (1) bala (DrawCircle) desde el punto (no sé cuál) de la nave espacial
+// 4. Mover la bala con una dirección y velocidad
+// 5. Si la bala sale de la pantalla o golpea un asteroide, eliminarla.
+//
+// Funciones:
+// - createBullet(): comprueba si la entrada del usuario = KEY_SPACE, crea una bala y la añade al array si es posible
+// - drawBullets(): dibuja cuántas balas hay en el array
+// - moveBullet(Bullet* b): mueve la bala con dirección de velocidad y magnitud (velocidad)
+// - checkBulletBounds(Bullet* b): recorre el array de balas y comprueba si está fuera de los límites o si golpea un asteroide
+// - Envolver todo en el método shoot(Spaceship* s) para que sea más limpio
+
+// Función para comprobar espacio libre en el array de balas?
+
+// Si no hay espacio libre, eliminar la primera (FIFO)
+// Si hay espacio libre, crear bala
+
+void createBullet(Vector2 pos, Vector2 velDir) {
+    if (!IsKeyPressed(KEY_SPACE)) return;
+
+    for (int i = 0; i < NUM_BULLETS; i++) {
+        if (!bulletActive[i]) {
+            BULLETS[i] = (Bullet){ pos, 3, velDir };
+            bulletActive[i] = 1;
+            return;
+        }
+    }
+
+    // TODO: Implementar FIFO con queue
+    // Esto funciona por ahora
+    BULLETS[0] = (Bullet){ pos, 3, velDir };
+    bulletActive[0] = 1;
+}
+
+void drawBullets() {
+    for (int i = 0; i < NUM_BULLETS; i++) {
+        if (!bulletActive[i]) continue;
+        Bullet *b = &BULLETS[i];
+        DrawCircle(b->pos.x, b->pos.y, b->radius, RAYWHITE);
+    }
+}
+
+void updateBullets() {
+    for (int i = 0; i < NUM_BULLETS; i++) {
+        if (!bulletActive[i]) continue;
+        Bullet* b = &BULLETS[i];
+
+        if (b->pos.x + b->radius < 0 || b->pos.x - b->radius > WIDTH || b->pos.y + b->radius < 0 || b->pos.y - b->radius > HEIGHT) {
+            bulletActive[i] = 0;
+        }
+    }
+}
+
+void moveBullet() {
+    for (int i = 0; i < NUM_BULLETS; i++) {
+        if (!bulletActive[i]) continue;
+        Bullet *b = &BULLETS[i];
+        b->pos.x += b->vel.x * BULLET_SPEED;
+        b->pos.y += b->vel.y * BULLET_SPEED;
+    }
+}
+
+void Shoot(Spaceship* s) {
+    Vector2 position = s->pos;
+    updateBullets();
+    createBullet(position, (Vector2){1, 0});
+    moveBullet();
+    drawBullets();
+}
+
 void UpdateAsteroids() {
-    /* 
+    /*
     Update asteroid positions, screen wrap-around, and visual rotation
     */
 
@@ -221,6 +294,7 @@ int main(void)
 			UpdateGame(&spaceship);
             DrawAsteroids();
             DrawSpaceShip(&spaceship);
+            Shoot(&spaceship);
         EndDrawing();
     }
 
