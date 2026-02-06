@@ -1,7 +1,6 @@
 // TODO: Check game over 
 // TODO: Shooting
 // TODO: Break / Split asteroids
-// TODO: Add screen wrap instead of bouncing
 
 #include "raylib.h"
 #include "raymath.h"
@@ -50,6 +49,7 @@ void initAsteroids() {
     }
 }
 
+// TODO: Fix this (it turns to chaos)
 void resolveCollisions(Asteroid* a, Asteroid* b) {
     // Find unit normal and unit tangent vectors
     Vector2 delta = Vector2Subtract(a->pos, b->pos);
@@ -134,11 +134,10 @@ void UpdateAsteroids() {
 		a->pos.x += a->vel.x * SCALE;
 		a->pos.y += a->vel.y * SCALE;
 
-        if (a->pos.x - a->radius < 0 || a->pos.x + a->radius > WIDTH) {
-            a->vel.x *= -1;
-        } else if (a->pos.y - a->radius < 0 || a->pos.y + a->radius > HEIGHT) {
-            a->vel.y *= -1;
-        }
+        if (a->pos.x + a->radius < 0) a->pos.x = WIDTH;
+        if (a->pos.x - a->radius > WIDTH) a->pos.x = 0;
+        if (a->pos.y + a->radius < 0) a->pos.y = HEIGHT;
+        if (a->pos.y - a->radius > HEIGHT) a->pos.y = 0;
 
         a->rotation += SCALE;
     }
