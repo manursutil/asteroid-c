@@ -1,4 +1,4 @@
-// TODO: Check game over 
+// TODO: Check game over
 // TODO: Shooting
 // TODO: Break / Split asteroids
 
@@ -14,6 +14,8 @@
 #define NUM_ASTEROIDS 6
 #define SCALE 0.8f
 #define VEL 2.0f
+#define BULLET_SPEED 5.0f
+#define NUM_BULLETS 10
 
 typedef struct {
     Vector2 pos;
@@ -29,14 +31,25 @@ typedef struct {
     Vector2 vel;
 } Spaceship;
 
+typedef struct {
+    Vector2 pos;
+    float radius;
+    Vector2 vel;
+} Bullet;
+
 Asteroid ASTEROIDS[NUM_ASTEROIDS];
+Bullet BULLETS[NUM_BULLETS];
 
 Vector2 getRandV() {
+    /* Returns a random unit vector (random direction). */
+
     float angle = (float)GetRandomValue(0, 369) * DEG2RAD;
 	return (Vector2){cosf(angle), sinf(angle)};
 }
 
 void initAsteroids() {
+    /* Initialize asteroids with random positions/sizes/sides and random directions. */
+
     for (int i = 0; i < NUM_ASTEROIDS; i++) {
         Vector2 pos;
         int sides = GetRandomValue(3, 8);
@@ -50,7 +63,17 @@ void initAsteroids() {
 }
 
 void resolveCollisions(Asteroid* a, Asteroid* b) {
-    // Find unit normal and unit tangent vectors
+/*
+    Resolve an asteroid-asteroid collision as a perfectly elastic collision.
+    Steps:
+    1) Early-out if not overlapping.
+    2) Compute unit normal/tangent at contact.
+    3) Separate positions to remove overlap (positional correction).
+    4) Project velocities into normal/tangent components.
+    5) Apply 1D elastic collision equations along the normal; tangential components remain unchanged.
+    6) Reconstruct final velocity vectors.
+*/
+
     Vector2 delta = Vector2Subtract(a->pos, b->pos);
     float dsq = Vector2LengthSqr(delta);
     float rsum = a->radius + b->radius;
@@ -75,30 +98,23 @@ void resolveCollisions(Asteroid* a, Asteroid* b) {
         a->pos = Vector2Add(a->pos, Vector2Scale(correction, invMa));
         b->pos = Vector2Subtract(b->pos, Vector2Scale(correction, invMb));
     }
-    
-    // Create initial (before the collision velovty vector, v1 and v2) -- Already done
-    // Resolve the velocity vectors (v1 and v2) into normal and angential components. Project the velocity vectors onto the unit normal and the unit tangent vectors by taking the dot product of the vlocity vectors with the normal and unit tangent vectors. Vn and Vt are scalars.
+
+    // Decompose velocities into normal (n) and tangential (t) scalar components.
     float va_n = Vector2DotProduct(a->vel, unitNormal);
     float va_t = Vector2DotProduct(a->vel, unitTangent);
     float vb_n = Vector2DotProduct(b->vel, unitNormal);
     float vb_t = Vector2DotProduct(b->vel, unitTangent);
 
-    // Find the new tangential velocities (after the collision). They do not change: v1_t' = v1_t, v2_t' = v2_t.
-    // Find the new normal velocities (after the collision ("prime")). Same as one-dimensional collision formulas:
-    // v1_n' = v1_n * (m1 - m2) + 2*m2*v2_n / m1 + m2
-    // v2_n' = v2_n * (m2 - m1) + 2*m1*v1_n / m1 + m2
+    // Elastic collision along the normal axis (1D).
     float va_np = (va_n * (a->mass - b->mass) + 2.0f*b->mass*vb_n) / (a->mass + b->mass);
     float vb_np = (vb_n * (b->mass - a->mass) + 2.0f*a->mass*va_n) / (a->mass + b->mass);
 
-    // Convert the scalar normal and tangential velocities into vectors. Multiply the unit normal vector by the scalar normal velocity, same for the tangential component
+    // Recompose final velocities: v' = v_n' * n + v_t * t (tangential unchanged).
     Vector2 va_np_vector = Vector2Scale(unitNormal, va_np);
     Vector2 va_tp_vector = Vector2Scale(unitTangent, va_t);
     Vector2 vb_np_vector = Vector2Scale(unitNormal, vb_np);
     Vector2 vb_tp_vector = Vector2Scale(unitTangent, vb_t);
 
-    // Find the final velocity vectors by adding the normal and tangential components for each object:
-    // v1' = v1_n' + v1_t'
-    // v2' = v2_n' + v2_t'
     Vector2 velFinal_A = Vector2Add(va_np_vector, va_tp_vector);
     Vector2 velFinal_B = Vector2Add(vb_np_vector, vb_tp_vector);
 
@@ -107,17 +123,21 @@ void resolveCollisions(Asteroid* a, Asteroid* b) {
 }
 
 void checkCollisions() {
+    /* Check and resolve collisions for every unique asteroid pair. */
+
     for (int i = 0; i < NUM_ASTEROIDS; i++) {
         for (int j = i + 1; j < NUM_ASTEROIDS; j++) {
             Asteroid *a = &ASTEROIDS[i];
             Asteroid *b = &ASTEROIDS[j];
-            
+
             resolveCollisions(a, b);
         }
     }
 }
 
 void MoveSpaceship(Spaceship* s) {
+    /* Keyboard-driven ship movement (direct position changes). */
+
 	if (IsKeyDown(KEY_RIGHT)) s->pos.x += VEL;
     if (IsKeyDown(KEY_LEFT)) s->pos.x -= VEL;
     if (IsKeyDown(KEY_UP)) s->pos.y -= VEL;
@@ -125,15 +145,19 @@ void MoveSpaceship(Spaceship* s) {
 }
 
 void UpdateSpaceship(Spaceship* s) {
+    /* Update ship state */
+
     MoveSpaceship(s);
     s->pos.x += s->vel.x * VEL;
     s->pos.y += s->vel.y * VEL;
 }
 
 void UpdateAsteroids() {
+    /* Update asteroid positions, screen wrap-around, and visual rotation. */
+
     for (int i = 0; i < NUM_ASTEROIDS; i++) {
         Asteroid *a = &ASTEROIDS[i];
-		
+
 		a->pos.x += a->vel.x * SCALE;
 		a->pos.y += a->vel.y * SCALE;
 
@@ -170,12 +194,13 @@ int main(void)
 
     initAsteroids();
     Spaceship spaceship = (Spaceship) {
-        (Vector2) {(float)WIDTH/2, (float)HEIGHT/2}, 
-        10, 
+        (Vector2) {(float)WIDTH/2, (float)HEIGHT/2},
+        10,
         (Vector2) {0,0}
     };
 
-    int gameOver = 0;
+    int gameOver = 0; // TODO: Use this (set when ship hits asteroid, etc.)
+    (void)gameOver; // Silence warning until implemented
 
     while (!WindowShouldClose())
     {
