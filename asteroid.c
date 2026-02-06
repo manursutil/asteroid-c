@@ -49,7 +49,6 @@ void initAsteroids() {
     }
 }
 
-// TODO: Fix this (it turns to chaos)
 void resolveCollisions(Asteroid* a, Asteroid* b) {
     // Find unit normal and unit tangent vectors
     Vector2 delta = Vector2Subtract(a->pos, b->pos);
@@ -61,6 +60,10 @@ void resolveCollisions(Asteroid* a, Asteroid* b) {
     float dist = sqrtf(dsq);
     Vector2 unitNormal = Vector2Scale(delta, 1.0f/dist);
     Vector2 unitTangent = (Vector2){-unitNormal.y, unitNormal.x};
+
+    Vector2 rv = Vector2Subtract(a->vel, b->vel);
+    float velAlongNormal = Vector2DotProduct(rv, unitNormal);
+    if (velAlongNormal > 0.0f) return;
 
     // Positional correction
     float overlap = rsum - dist;
@@ -83,9 +86,9 @@ void resolveCollisions(Asteroid* a, Asteroid* b) {
     // Find the new tangential velocities (after the collision). They do not change: v1_t' = v1_t, v2_t' = v2_t.
     // Find the new normal velocities (after the collision ("prime")). Same as one-dimensional collision formulas:
     // v1_n' = v1_n * (m1 - m2) + 2*m2*v2_n / m1 + m2
-    // v2_n' = v2_n * (m1 - m2) + 2*m1*v1_n / m1 + m2
+    // v2_n' = v2_n * (m2 - m1) + 2*m1*v1_n / m1 + m2
     float va_np = (va_n * (a->mass - b->mass) + 2.0f*b->mass*vb_n) / (a->mass + b->mass);
-    float vb_np = (vb_n * (a->mass - b->mass) + 2.0f*a->mass*va_n) / (a->mass + b->mass);
+    float vb_np = (vb_n * (b->mass - a->mass) + 2.0f*a->mass*va_n) / (a->mass + b->mass);
 
     // Convert the scalar normal and tangential velocities into vectors. Multiply the unit normal vector by the scalar normal velocity, same for the tangential component
     Vector2 va_np_vector = Vector2Scale(unitNormal, va_np);
