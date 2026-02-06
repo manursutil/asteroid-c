@@ -16,7 +16,8 @@
 #define BULLET_SPEED 5.0f
 #define NUM_BULLETS 10
 
-typedef struct {
+typedef struct
+{
     Vector2 pos;
     int sides;
     float radius, rotation;
@@ -24,13 +25,15 @@ typedef struct {
     float mass;
 } Asteroid;
 
-typedef struct {
+typedef struct
+{
     Vector2 pos;
     float radius;
     Vector2 vel; // TODO: This is not used. Figure out what to do with this
 } Spaceship;
 
-typedef struct {
+typedef struct
+{
     Vector2 pos;
     float radius;
     Vector2 vel;
@@ -40,21 +43,24 @@ Asteroid ASTEROIDS[NUM_ASTEROIDS];
 Bullet BULLETS[NUM_BULLETS];
 int bulletActive[NUM_BULLETS];
 
-Vector2 getRandV() {
+Vector2 getRandV()
+{
     /*
     Returns a random unit vector (random direction)
     */
 
     float angle = (float)GetRandomValue(0, 369) * DEG2RAD;
-	return (Vector2){cosf(angle), sinf(angle)};
+    return (Vector2){cosf(angle), sinf(angle)};
 }
 
-void initAsteroids() {
+void initAsteroids()
+{
     /*
     Initialize asteroids with random positions/sizes/sides and random directions
     */
 
-    for (int i = 0; i < NUM_ASTEROIDS; i++) {
+    for (int i = 0; i < NUM_ASTEROIDS; i++)
+    {
         Vector2 pos;
         int sides = GetRandomValue(3, 8);
         float radius = GetRandomValue(35, 65);
@@ -66,7 +72,8 @@ void initAsteroids() {
     }
 }
 
-void resolveCollisions(Asteroid* a, Asteroid* b) {
+void resolveCollisions(Asteroid *a, Asteroid *b)
+{
     /*
     Resolve an asteroid-asteroid collision as a perfectly elastic collision.
     Steps:
@@ -74,30 +81,33 @@ void resolveCollisions(Asteroid* a, Asteroid* b) {
     2) Compute unit normal/tangent at contact
     3) Separate positions to remove overlap (positional correction)
     4) Project velocities into normal/tangent components
-    5) Apply 1D elastic collision equations along the normal; tangential components remain unchanged.
-    6) Reconstruct final velocity vectors
+    5) Apply 1D elastic collision equations along the normal; tangential components remain
+    unchanged. 6) Reconstruct final velocity vectors
     */
 
     Vector2 delta = Vector2Subtract(a->pos, b->pos);
     float dsq = Vector2LengthSqr(delta);
     float rsum = a->radius + b->radius;
 
-    if (dsq <= 0.0000001f || dsq >= rsum*rsum) return;
+    if (dsq <= 0.0000001f || dsq >= rsum * rsum)
+        return;
 
     float dist = sqrtf(dsq);
-    Vector2 unitNormal = Vector2Scale(delta, 1.0f/dist);
+    Vector2 unitNormal = Vector2Scale(delta, 1.0f / dist);
     Vector2 unitTangent = (Vector2){-unitNormal.y, unitNormal.x};
 
     Vector2 rv = Vector2Subtract(a->vel, b->vel);
     float velAlongNormal = Vector2DotProduct(rv, unitNormal);
-    if (velAlongNormal > 0.0f) return;
+    if (velAlongNormal > 0.0f)
+        return;
 
     // Positional correction
     float overlap = rsum - dist;
-    float invMa = (a->mass > 0) ? 1.0f/a->mass : 0.0f;
-    float invMb = (b->mass > 0) ? 1.0f/b->mass : 0.0f;
+    float invMa = (a->mass > 0) ? 1.0f / a->mass : 0.0f;
+    float invMb = (b->mass > 0) ? 1.0f / b->mass : 0.0f;
     float invSum = invMa + invMb;
-    if (invSum > 0.0f) {
+    if (invSum > 0.0f)
+    {
         Vector2 correction = Vector2Scale(unitNormal, overlap / invSum);
         a->pos = Vector2Add(a->pos, Vector2Scale(correction, invMa));
         b->pos = Vector2Subtract(b->pos, Vector2Scale(correction, invMb));
@@ -110,8 +120,8 @@ void resolveCollisions(Asteroid* a, Asteroid* b) {
     float vb_t = Vector2DotProduct(b->vel, unitTangent);
 
     // Elastic collision along the normal axis (1D).
-    float va_np = (va_n * (a->mass - b->mass) + 2.0f*b->mass*vb_n) / (a->mass + b->mass);
-    float vb_np = (vb_n * (b->mass - a->mass) + 2.0f*a->mass*va_n) / (a->mass + b->mass);
+    float va_np = (va_n * (a->mass - b->mass) + 2.0f * b->mass * vb_n) / (a->mass + b->mass);
+    float vb_np = (vb_n * (b->mass - a->mass) + 2.0f * a->mass * va_n) / (a->mass + b->mass);
 
     // Recompose final velocities: v' = v_n' * n + v_t * t (tangential unchanged)
     Vector2 va_np_vector = Vector2Scale(unitNormal, va_np);
@@ -126,13 +136,16 @@ void resolveCollisions(Asteroid* a, Asteroid* b) {
     b->vel = velFinal_B;
 }
 
-void checkCollisions() {
+void checkCollisions()
+{
     /*
     Check and resolve collisions for every unique asteroid pair
     */
 
-    for (int i = 0; i < NUM_ASTEROIDS; i++) {
-        for (int j = i + 1; j < NUM_ASTEROIDS; j++) {
+    for (int i = 0; i < NUM_ASTEROIDS; i++)
+    {
+        for (int j = i + 1; j < NUM_ASTEROIDS; j++)
+        {
             Asteroid *a = &ASTEROIDS[i];
             Asteroid *b = &ASTEROIDS[j];
 
@@ -141,18 +154,24 @@ void checkCollisions() {
     }
 }
 
-void MoveSpaceship(Spaceship* s) {
+void MoveSpaceship(Spaceship *s)
+{
     /*
     Ship movement with keyboard (direct position changes)
     */
 
-	if (IsKeyDown(KEY_RIGHT)) s->pos.x += VEL;
-    if (IsKeyDown(KEY_LEFT)) s->pos.x -= VEL;
-    if (IsKeyDown(KEY_UP)) s->pos.y -= VEL;
-    if (IsKeyDown(KEY_DOWN)) s->pos.y += VEL;
+    if (IsKeyDown(KEY_RIGHT))
+        s->pos.x += VEL;
+    if (IsKeyDown(KEY_LEFT))
+        s->pos.x -= VEL;
+    if (IsKeyDown(KEY_UP))
+        s->pos.y -= VEL;
+    if (IsKeyDown(KEY_DOWN))
+        s->pos.y += VEL;
 }
 
-void UpdateSpaceship(Spaceship* s) {
+void UpdateSpaceship(Spaceship *s)
+{
     /*
     Update ship state
     */
@@ -171,10 +190,12 @@ void UpdateSpaceship(Spaceship* s) {
 // 5. Si la bala sale de la pantalla o golpea un asteroide, eliminarla.
 //
 // Funciones:
-// - createBullet(): comprueba si la entrada del usuario = KEY_SPACE, crea una bala y la añade al array si es posible
+// - createBullet(): comprueba si la entrada del usuario = KEY_SPACE, crea una bala y la añade al
+// array si es posible
 // - drawBullets(): dibuja cuántas balas hay en el array
 // - moveBullet(Bullet* b): mueve la bala con dirección de velocidad y magnitud (velocidad)
-// - checkBulletBounds(Bullet* b): recorre el array de balas y comprueba si está fuera de los límites o si golpea un asteroide
+// - checkBulletBounds(Bullet* b): recorre el array de balas y comprueba si está fuera de los
+// límites o si golpea un asteroide
 // - Envolver todo en el método shoot(Spaceship* s) para que sea más limpio
 
 // Función para comprobar espacio libre en el array de balas?
@@ -182,12 +203,16 @@ void UpdateSpaceship(Spaceship* s) {
 // Si no hay espacio libre, eliminar la primera (FIFO)
 // Si hay espacio libre, crear bala
 
-void createBullet(Vector2 pos, Vector2 velDir) {
-    if (!IsKeyPressed(KEY_SPACE)) return;
+void createBullet(Vector2 pos, Vector2 velDir)
+{
+    if (!IsKeyPressed(KEY_SPACE))
+        return;
 
-    for (int i = 0; i < NUM_BULLETS; i++) {
-        if (!bulletActive[i]) {
-            BULLETS[i] = (Bullet){ pos, 3, velDir };
+    for (int i = 0; i < NUM_BULLETS; i++)
+    {
+        if (!bulletActive[i])
+        {
+            BULLETS[i] = (Bullet){pos, 3, velDir};
             bulletActive[i] = 1;
             return;
         }
@@ -195,39 +220,51 @@ void createBullet(Vector2 pos, Vector2 velDir) {
 
     // TODO: Implementar FIFO con queue
     // Esto funciona por ahora
-    BULLETS[0] = (Bullet){ pos, 3, velDir };
+    BULLETS[0] = (Bullet){pos, 3, velDir};
     bulletActive[0] = 1;
 }
 
-void drawBullets() {
-    for (int i = 0; i < NUM_BULLETS; i++) {
-        if (!bulletActive[i]) continue;
+void drawBullets()
+{
+    for (int i = 0; i < NUM_BULLETS; i++)
+    {
+        if (!bulletActive[i])
+            continue;
         Bullet *b = &BULLETS[i];
         DrawCircle(b->pos.x, b->pos.y, b->radius, RAYWHITE);
     }
 }
 
-void updateBullets() {
-    for (int i = 0; i < NUM_BULLETS; i++) {
-        if (!bulletActive[i]) continue;
-        Bullet* b = &BULLETS[i];
+void updateBullets()
+{
+    for (int i = 0; i < NUM_BULLETS; i++)
+    {
+        if (!bulletActive[i])
+            continue;
+        Bullet *b = &BULLETS[i];
 
-        if (b->pos.x + b->radius < 0 || b->pos.x - b->radius > WIDTH || b->pos.y + b->radius < 0 || b->pos.y - b->radius > HEIGHT) {
+        if (b->pos.x + b->radius < 0 || b->pos.x - b->radius > WIDTH || b->pos.y + b->radius < 0 ||
+            b->pos.y - b->radius > HEIGHT)
+        {
             bulletActive[i] = 0;
         }
     }
 }
 
-void moveBullet() {
-    for (int i = 0; i < NUM_BULLETS; i++) {
-        if (!bulletActive[i]) continue;
+void moveBullet()
+{
+    for (int i = 0; i < NUM_BULLETS; i++)
+    {
+        if (!bulletActive[i])
+            continue;
         Bullet *b = &BULLETS[i];
         b->pos.x += b->vel.x * BULLET_SPEED;
         b->pos.y += b->vel.y * BULLET_SPEED;
     }
 }
 
-void Shoot(Spaceship* s) {
+void Shoot(Spaceship *s)
+{
     Vector2 position = s->pos;
     updateBullets();
     createBullet(position, (Vector2){1, 0});
@@ -235,38 +272,45 @@ void Shoot(Spaceship* s) {
     drawBullets();
 }
 
-void UpdateAsteroids() {
+void UpdateAsteroids()
+{
     /*
     Update asteroid positions, screen wrap-around, and visual rotation
     */
 
-    for (int i = 0; i < NUM_ASTEROIDS; i++) {
+    for (int i = 0; i < NUM_ASTEROIDS; i++)
+    {
         Asteroid *a = &ASTEROIDS[i];
 
-		a->pos.x += a->vel.x * SCALE;
-		a->pos.y += a->vel.y * SCALE;
+        a->pos.x += a->vel.x * SCALE;
+        a->pos.y += a->vel.y * SCALE;
 
-        if (a->pos.x + a->radius < 0) a->pos.x = WIDTH;
-        if (a->pos.x - a->radius > WIDTH) a->pos.x = 0;
-        if (a->pos.y + a->radius < 0) a->pos.y = HEIGHT;
-        if (a->pos.y - a->radius > HEIGHT) a->pos.y = 0;
+        if (a->pos.x + a->radius < 0)
+            a->pos.x = WIDTH;
+        if (a->pos.x - a->radius > WIDTH)
+            a->pos.x = 0;
+        if (a->pos.y + a->radius < 0)
+            a->pos.y = HEIGHT;
+        if (a->pos.y - a->radius > HEIGHT)
+            a->pos.y = 0;
 
         a->rotation += SCALE;
     }
 }
 
-void UpdateGame(Spaceship* s) {
-	UpdateAsteroids();
-	UpdateSpaceship(s);
-	checkCollisions();
+void UpdateGame(Spaceship *s)
+{
+    UpdateAsteroids();
+    UpdateSpaceship(s);
+    checkCollisions();
 }
 
-void DrawSpaceShip(Spaceship* s) {
-    DrawPoly(s->pos, 3, s->radius, 120, BLUE);
-}
+void DrawSpaceShip(Spaceship *s) { DrawPoly(s->pos, 3, s->radius, 120, BLUE); }
 
-void DrawAsteroids() {
-    for (int i = 0; i < NUM_ASTEROIDS; i++) {
+void DrawAsteroids()
+{
+    for (int i = 0; i < NUM_ASTEROIDS; i++)
+    {
         Asteroid *a = &ASTEROIDS[i];
         DrawPoly(a->pos, a->sides, a->radius, a->rotation, RAYWHITE);
     }
@@ -278,23 +322,20 @@ int main(void)
     SetTargetFPS(60);
 
     initAsteroids();
-    Spaceship spaceship = (Spaceship) {
-        (Vector2) {(float)WIDTH/2, (float)HEIGHT/2},
-        10,
-        (Vector2) {0,0}
-    };
+    Spaceship spaceship =
+        (Spaceship){(Vector2){(float)WIDTH / 2, (float)HEIGHT / 2}, 10, (Vector2){0, 0}};
 
     int gameOver = 0; // TODO: Use this (set when ship hits asteroid, etc.)
-    (void)gameOver; // Silence warning until implemented
+    (void)gameOver;   // Silence warning until implemented
 
     while (!WindowShouldClose())
     {
         BeginDrawing();
-            ClearBackground(BLACK);
-			UpdateGame(&spaceship);
-            DrawAsteroids();
-            DrawSpaceShip(&spaceship);
-            Shoot(&spaceship);
+        ClearBackground(BLACK);
+        UpdateGame(&spaceship);
+        DrawAsteroids();
+        DrawSpaceShip(&spaceship);
+        Shoot(&spaceship);
         EndDrawing();
     }
 
