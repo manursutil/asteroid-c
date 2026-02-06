@@ -41,14 +41,18 @@ Asteroid ASTEROIDS[NUM_ASTEROIDS];
 Bullet BULLETS[NUM_BULLETS];
 
 Vector2 getRandV() {
-    /* Returns a random unit vector (random direction). */
+    /* 
+    Returns a random unit vector (random direction)
+    */
 
     float angle = (float)GetRandomValue(0, 369) * DEG2RAD;
 	return (Vector2){cosf(angle), sinf(angle)};
 }
 
 void initAsteroids() {
-    /* Initialize asteroids with random positions/sizes/sides and random directions. */
+    /* 
+    Initialize asteroids with random positions/sizes/sides and random directions
+    */
 
     for (int i = 0; i < NUM_ASTEROIDS; i++) {
         Vector2 pos;
@@ -63,16 +67,16 @@ void initAsteroids() {
 }
 
 void resolveCollisions(Asteroid* a, Asteroid* b) {
-/*
+    /*
     Resolve an asteroid-asteroid collision as a perfectly elastic collision.
     Steps:
-    1) Early-out if not overlapping.
-    2) Compute unit normal/tangent at contact.
-    3) Separate positions to remove overlap (positional correction).
-    4) Project velocities into normal/tangent components.
+    1) Early-out if not overlapping
+    2) Compute unit normal/tangent at contact
+    3) Separate positions to remove overlap (positional correction)
+    4) Project velocities into normal/tangent components
     5) Apply 1D elastic collision equations along the normal; tangential components remain unchanged.
-    6) Reconstruct final velocity vectors.
-*/
+    6) Reconstruct final velocity vectors
+    */
 
     Vector2 delta = Vector2Subtract(a->pos, b->pos);
     float dsq = Vector2LengthSqr(delta);
@@ -99,7 +103,7 @@ void resolveCollisions(Asteroid* a, Asteroid* b) {
         b->pos = Vector2Subtract(b->pos, Vector2Scale(correction, invMb));
     }
 
-    // Decompose velocities into normal (n) and tangential (t) scalar components.
+    // Decompose velocities into normal (n) and tangential (t) scalar components
     float va_n = Vector2DotProduct(a->vel, unitNormal);
     float va_t = Vector2DotProduct(a->vel, unitTangent);
     float vb_n = Vector2DotProduct(b->vel, unitNormal);
@@ -109,7 +113,7 @@ void resolveCollisions(Asteroid* a, Asteroid* b) {
     float va_np = (va_n * (a->mass - b->mass) + 2.0f*b->mass*vb_n) / (a->mass + b->mass);
     float vb_np = (vb_n * (b->mass - a->mass) + 2.0f*a->mass*va_n) / (a->mass + b->mass);
 
-    // Recompose final velocities: v' = v_n' * n + v_t * t (tangential unchanged).
+    // Recompose final velocities: v' = v_n' * n + v_t * t (tangential unchanged)
     Vector2 va_np_vector = Vector2Scale(unitNormal, va_np);
     Vector2 va_tp_vector = Vector2Scale(unitTangent, va_t);
     Vector2 vb_np_vector = Vector2Scale(unitNormal, vb_np);
@@ -123,7 +127,9 @@ void resolveCollisions(Asteroid* a, Asteroid* b) {
 }
 
 void checkCollisions() {
-    /* Check and resolve collisions for every unique asteroid pair. */
+    /* 
+    Check and resolve collisions for every unique asteroid pair
+    */
 
     for (int i = 0; i < NUM_ASTEROIDS; i++) {
         for (int j = i + 1; j < NUM_ASTEROIDS; j++) {
@@ -136,7 +142,9 @@ void checkCollisions() {
 }
 
 void MoveSpaceship(Spaceship* s) {
-    /* Keyboard-driven ship movement (direct position changes). */
+    /* 
+    Ship movement with keyboard (direct position changes)
+    */
 
 	if (IsKeyDown(KEY_RIGHT)) s->pos.x += VEL;
     if (IsKeyDown(KEY_LEFT)) s->pos.x -= VEL;
@@ -145,7 +153,9 @@ void MoveSpaceship(Spaceship* s) {
 }
 
 void UpdateSpaceship(Spaceship* s) {
-    /* Update ship state */
+    /* 
+    Update ship state 
+    */
 
     MoveSpaceship(s);
     s->pos.x += s->vel.x * VEL;
@@ -153,7 +163,9 @@ void UpdateSpaceship(Spaceship* s) {
 }
 
 void UpdateAsteroids() {
-    /* Update asteroid positions, screen wrap-around, and visual rotation. */
+    /* 
+    Update asteroid positions, screen wrap-around, and visual rotation
+    */
 
     for (int i = 0; i < NUM_ASTEROIDS; i++) {
         Asteroid *a = &ASTEROIDS[i];
