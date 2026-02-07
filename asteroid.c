@@ -1,4 +1,7 @@
-// TODO: Check game over
+// TODO: Hacer que la nave no aparezca cerca de los asteroides al iniciar el juego (o que se mueva a una posición segura si esto ocurre)
+// TODO: Puntuación 
+// TODO: No permitir spamming de balas (limitar a 1 cada 0.5 segundos o algo así)
+// TODO: Cuando no haya más asteroides, mostrar mensaje de "You Win!" y permitir reiniciar el juego
 
 #include "raylib.h"
 #include "raymath.h"
@@ -69,8 +72,10 @@ AsteroidSize getAsteroidSize(float r) {
     /**
      * Returns asteroid size enum based on radius size
      */
-    if (r >= R_BIG) return AST_BIG;
-    if (r >= R_MED) return AST_MED;
+    if (r >= R_BIG)
+        return AST_BIG;
+    if (r >= R_MED)
+        return AST_MED;
     return AST_SMALL;
 }
 
@@ -79,9 +84,12 @@ int maxHitsFromSize(AsteroidSize s) {
      * Returns the number of hits required to break the asteroid depending on the size
      */
     switch (s) {
-        case AST_SMALL: return 1;
-        case AST_MED: return 2;
-        case AST_BIG: return 3;
+    case AST_SMALL:
+        return 1;
+    case AST_MED:
+        return 2;
+    case AST_BIG:
+        return 3;
     }
     return 1; // should never happen
 }
@@ -119,21 +127,22 @@ void initAsteroids() {
      * Initialize asteroids with random positions/sizes/sides and random directions
      */
 
-     for (int i = 0; i < MAX_ASTEROIDS; i++) {
+    for (int i = 0; i < MAX_ASTEROIDS; i++) {
         ASTEROIDS[i].active = 0;
-     }
+    }
 
-     for (int i = 0; i < NUM_START_ASTEROIDS; i++) {
+    for (int i = 0; i < NUM_START_ASTEROIDS; i++) {
         float radius = (float)GetRandomValue(35, 65);
         Vector2 pos;
-        pos.x = (float)GetRandomValue((int)radius, (int)WIDTH-radius);
-        pos.y = (float)GetRandomValue((int)radius, (int)HEIGHT-radius);
+        pos.x = (float)GetRandomValue((int)radius, (int)WIDTH - radius);
+        pos.y = (float)GetRandomValue((int)radius, (int)HEIGHT - radius);
 
         int idx = findFreeAsteroidIndex();
-        if (idx == -1) break;
+        if (idx == -1)
+            break;
 
         createAsteroid(idx, pos, radius, getRandV());
-     }
+    }
 }
 
 void resolveCollisions(Asteroid *a, Asteroid *b) {
@@ -144,8 +153,8 @@ void resolveCollisions(Asteroid *a, Asteroid *b) {
      * 2) Compute unit normal/tangent at contact
      * 3) Separate positions to remove overlap (positional correction)
      * 4) Project velocities into normal/tangent components
-     * 5) Apply 1D elastic collision equations along the normal; tangential components remain unchanged. 
-     * 6) Reconstruct final velocity vectors
+     * 5) Apply 1D elastic collision equations along the normal; tangential components remain
+     * unchanged. 6) Reconstruct final velocity vectors
      */
 
     Vector2 delta = Vector2Subtract(a->pos, b->pos);
@@ -239,8 +248,9 @@ void UpdateSpaceship(Spaceship *s) {
 }
 
 void splitAsteroid(int parentIdx) {
-    Asteroid* p = &ASTEROIDS[parentIdx];
-    if (!p->active) return;
+    Asteroid *p = &ASTEROIDS[parentIdx];
+    if (!p->active)
+        return;
 
     if (p->radius <= R_SMALL) {
         p->active = 0;
@@ -251,28 +261,32 @@ void splitAsteroid(int parentIdx) {
     float childRadius = 0.0f;
 
     switch (p->size) {
-        case AST_BIG:
-            childCount = 3;
-            childRadius = p->radius * 0.55f;
-            break;
-        case AST_MED:
-            childCount = 2;
-            childRadius = p->radius * 0.60f;
-            break;
-        default:
-            p->active = 0;
-            return;
+    case AST_BIG:
+        childCount = 3;
+        childRadius = p->radius * 0.55f;
+        break;
+    case AST_MED:
+        childCount = 2;
+        childRadius = p->radius * 0.60f;
+        break;
+    default:
+        p->active = 0;
+        return;
     }
 
-    Vector2 initPos = p->pos; // TODO: add small random offset to avoid overlap
+    Vector2 initPos = p->pos;
     p->active = 0;
 
     for (int i = 0; i < childCount; i++) {
         int idx = findFreeAsteroidIndex();
-        if (idx == -1) return;
+        if (idx == -1)
+            return;
+
+        Vector2 jitter = Vector2Scale(getRandV(), childRadius * 0.35f);
+        Vector2 cPos = Vector2Add(initPos, jitter);
 
         Vector2 velDir = getRandV();
-        createAsteroid(idx, initPos, childRadius, velDir);
+        createAsteroid(idx, cPos, childRadius, velDir);
         ASTEROIDS[idx].vel = Vector2Scale(ASTEROIDS[idx].vel, 1.3f);
     }
 }
@@ -284,7 +298,8 @@ void UpdateAsteroids() {
 
     for (int i = 0; i < MAX_ASTEROIDS; i++) {
         Asteroid *a = &ASTEROIDS[i];
-        if (!a->active) continue;
+        if (!a->active)
+            continue;
 
         a->pos.x += a->vel.x * SCALE;
         a->pos.y += a->vel.y * SCALE;
@@ -307,13 +322,15 @@ void handleBulletAsteroidCollisions() {
      * Checks for collisions between bullets and asteroids.
      */
     for (int bulletIdx = 0; bulletIdx < NUM_BULLETS; bulletIdx++) {
-        if (!bulletActive[bulletIdx]) continue;
+        if (!bulletActive[bulletIdx])
+            continue;
         Bullet *b = &BULLETS[bulletIdx];
 
         for (int astIdx = 0; astIdx < MAX_ASTEROIDS; astIdx++) {
             Asteroid *a = &ASTEROIDS[astIdx];
-            if (!a->active) continue;
-            
+            if (!a->active)
+                continue;
+
             float dx = b->pos.x - a->pos.x;
             float dy = b->pos.y - a->pos.y;
             float r = b->radius + a->radius;
@@ -405,6 +422,21 @@ void Shoot(Spaceship *s) {
     drawBullets();
 }
 
+void checkGameOver(Spaceship* s, int* gameOver) {
+    for (int i = 0; i < MAX_ASTEROIDS; i++) {
+        Asteroid* a = &ASTEROIDS[i];
+        if (!a->active)
+            continue;
+        float dx = s->pos.x - a->pos.x;
+        float dy = s->pos.y - a->pos.y;
+        float r = s->radius + a->radius;
+        if (dx*dx + dy*dy <= r*r) {
+            *gameOver = 1;
+            return;
+        }
+    }
+}
+
 void UpdateGame(Spaceship *s) {
     UpdateAsteroids();
     UpdateSpaceship(s);
@@ -430,16 +462,23 @@ int main(void) {
     Spaceship spaceship =
         (Spaceship){(Vector2){(float)WIDTH / 2, (float)HEIGHT / 2}, 10, (Vector2){0, 0}};
 
-    int gameOver = 0; // TODO: Use this (set when ship hits asteroid, etc.)
-    (void)gameOver;   // Silence warning until implemented
+    int gameOver = 0;
 
-    while (!WindowShouldClose()) {
+    while (!WindowShouldClose() && !gameOver) {
         BeginDrawing();
         ClearBackground(BLACK);
         UpdateGame(&spaceship);
         DrawAsteroids();
         DrawSpaceShip(&spaceship);
         Shoot(&spaceship);
+        checkGameOver(&spaceship, &gameOver);
+        EndDrawing();
+    }
+
+    while (!WindowShouldClose() && gameOver) {
+        BeginDrawing();
+        ClearBackground(BLACK);
+        DrawText("Game Over", WIDTH / 2 - MeasureText("Game Over", 40) / 2, HEIGHT / 2 - 20, 40, RED);
         EndDrawing();
     }
 
