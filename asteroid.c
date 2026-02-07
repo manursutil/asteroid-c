@@ -240,53 +240,6 @@ void UpdateSpaceship(Spaceship *s) {
 }
 
 // TODO: Romper asteroides:
-// 1) Detectar cuando bala y asteroide chocan: HECHO
-//      - Obtener el índice del asteroide golpeado
-// 2) Si hay colisión, aumentar el número de impactos del asteroide: HECHO
-// 2) Asteroide grande >55 radio, 3 disparos mínimo -> añadir número de veces disparado al struct de
-// asteroide 
-// 3) Dependiendo del tamaño del asteroide, romperse en tamaños progresivamente más
-// pequeños 
-// 4) Romper asteroide:
-//      - Guardar la posición del ateroide actual
-//      - Eliminar asteroide (se marcan como inactivos, no se eliminan del array)
-//      - Crear 3 o 4 nuevos asteroides en la "misma" (pequeña variación dependiendo del radio)
-//      posición
-//      - Si el asteroide es pequeño <30 eliminarlo
-// 5) Crear un nuevo array de asteroides hijos con un máximo más alto (NUM_HIJOS * NUM_ASTEROIDES?)
-// 6) Cuando no hay asteroides en ninguno de los arrays, generar más
-// 7) enum de niveles (GRANDE, MEDIANO, PEQUEÑO)
-// Añadir al Asteroid struct:
-//      - int hits; (número de veces que ha sido disparado, comparar con maxHits para saber cuándo romper)
-//      - int maxHits; (dependiendo del tamaño)
-//      - int level; (dependiendo del radio para saber qué tipo de asteroide es: grande, mediano, pequeño) ENUM
-//      - int active;      // 1 = activo, 0 = inactivo
-// Flujo: 
-// 1) Detectar colisiones bala–asteroide
-// 2) Si hay colisión:
-//   - obtener el índice del asteroide golpeado
-//   - desactivar la bala
-//   - aumentar hits del asteroide
-// 3) Decidir si el asteroide se rompe:
-//   - si hits < maxHits -> no pasa nada
-//   - si hits >= maxHits:
-//        * si radio > RADIO_MIN -> crear hijos
-//        * si radio <= RADIO_MIN -> eliminar sin hijos
-// 4) Marcar el asteroide padre como inactivo
-// 5) Actualizar movimiento de asteroides activos
-// 6) Dibujar todos los asteroides activos
-// Cuando un asteroide se rompe:
-// 1) Guardar su posición
-// 2) Marcar el asteroide padre como inactivo
-// 3) Según su radio:
-//    - crear 3 o 4 hijos
-//    - radio de los hijos en un rango menor
-//    - pequeña variación de posición
-//    - velocidades ligeramente distintas
-// 4) Inicializar hijos con:
-//    - hits = 0
-//    - maxHits (por ahora constante global)
-
 void splitAsteroid(int parentIdx) {
     Asteroid* p = &ASTEROIDS[parentIdx];
     if (!p->active) return;
@@ -380,25 +333,6 @@ void handleBulletAsteroidCollisions() {
 }
 
 // TODO: Shooting
-// Mecánica de disparo:
-// 1. Obtener la posición actual de la nave espacial
-// 2. Comprobar si el jugador presiona la barra espaciadora
-// 3. Dibujar la (1) bala (DrawCircle) desde el punto (no sé cuál) de la nave espacial
-// 4. Mover la bala con una dirección y velocidad
-// 5. Si la bala sale de la pantalla o golpea un asteroide, eliminarla.
-//
-// Funciones:
-// - createBullet(): comprueba si la entrada del usuario = KEY_SPACE, crea una bala y la añade al
-// array si es posible
-// - drawBullets(): dibuja cuántas balas hay en el array
-// - moveBullet(Bullet* b): mueve la bala con dirección de velocidad y magnitud (velocidad)
-// - checkBulletBounds(Bullet* b): recorre el array de balas y comprueba si está fuera de los
-// límites o si golpea un asteroide
-// - Envolver todo en el método shoot(Spaceship* s) para que sea más limpio
-// Función para comprobar espacio libre en el array de balas?
-// Si no hay espacio libre, eliminar la primera (FIFO)
-// Si hay espacio libre, crear bala
-
 void createBullet(Vector2 pos, Vector2 velDir) {
     /**
      * Creates a bullet at the given position and direction if SPACE is pressed.
