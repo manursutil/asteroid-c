@@ -10,11 +10,23 @@
 #define WIDTH 800
 #define HEIGHT 600
 
-#define NUM_ASTEROIDS 6
+#define MAX_ASTEROIDS 64
+#define NUM_START_ASTEROIDS 6
+
+#define R_BIG 55.0f
+#define R_MED 35.0f
+#define R_SMALL 18.0f
+
 #define SCALE 0.8f
 #define VEL 2.0f
 #define BULLET_SPEED 5.0f
 #define NUM_BULLETS 10
+
+typedef enum {
+    AST_SMALL,
+    AST_MED,
+    AST_BIG,
+} AsteroidSize;
 
 typedef struct {
     Vector2 pos;
@@ -22,6 +34,11 @@ typedef struct {
     float radius, rotation;
     Vector2 vel;
     float mass;
+
+    int active;
+    int hits;
+    int maxHits;
+    AsteroidSize size;
 } Asteroid;
 
 typedef struct {
@@ -36,7 +53,7 @@ typedef struct {
     Vector2 vel;
 } Bullet;
 
-Asteroid ASTEROIDS[NUM_ASTEROIDS];
+Asteroid ASTEROIDS[MAX_ASTEROIDS];
 Bullet BULLETS[NUM_BULLETS];
 int bulletActive[NUM_BULLETS];
 
@@ -49,21 +66,75 @@ Vector2 getRandV() {
     return (Vector2){cosf(angle), sinf(angle)};
 }
 
+AsteroidSize getAsteroidSize(float r) {
+    /**
+     * Returns asteroid size enum based on radius size
+     */
+    if (r >= R_BIG) return AST_BIG;
+    if (r >= R_MED) return AST_MED;
+    return AST_SMALL;
+}
+
+int maxHitsFromSize(AsteroidSize s) {
+    /**
+     * Returns the number of hits required to break the asteroid depending on the size
+     */
+    switch (s) {
+        case AST_SMALL: return 1;
+        case AST_MED: return 2;
+        case AST_BIG: return 3;
+    }
+    return 1; // should never happen
+}
+
+int findFreeAsteroidIndex() {
+    for (int i = 0; i < MAX_ASTEROIDS; i++) {
+        if (!ASTEROIDS[i].active) {
+            return i;
+        }
+    }
+    return -1; // All full
+}
+
+void createAsteroid(int i, Vector2 pos, float r, Vector2 velDir) {
+    int sides = GetRandomValue(3, 8);
+    float rotation = (float)GetRandomValue(1, 5);
+
+    AsteroidSize s = getAsteroidSize(r);
+
+    ASTEROIDS[i].pos = pos;
+    ASTEROIDS[i].sides = sides;
+    ASTEROIDS[i].radius = r;
+    ASTEROIDS[i].rotation = rotation;
+    ASTEROIDS[i].vel = Vector2Normalize(velDir);
+    ASTEROIDS[i].mass = r * r;
+
+    ASTEROIDS[i].active = 1;
+    ASTEROIDS[i].hits = 0;
+    ASTEROIDS[i].size = s;
+    ASTEROIDS[i].maxHits = maxHitsFromSize(s);
+}
+
 void initAsteroids() {
     /**
      * Initialize asteroids with random positions/sizes/sides and random directions
      */
 
-    for (int i = 0; i < NUM_ASTEROIDS; i++) {
+     for (int i = 0; i < MAX_ASTEROIDS; i++) {
+        ASTEROIDS[i].active = 0;
+     }
+
+     for (int i = 0; i < NUM_START_ASTEROIDS; i++) {
+        float radius = (float)GetRandomValue(35, 65);
         Vector2 pos;
-        int sides = GetRandomValue(3, 8);
-        float radius = GetRandomValue(35, 65);
-        float rotation = GetRandomValue(1, 5);
-        pos.x = GetRandomValue(0 + radius, WIDTH - radius);
-        pos.y = GetRandomValue(0 + radius, HEIGHT - radius);
-        float mass = radius * radius;
-        ASTEROIDS[i] = (Asteroid){pos, sides, radius, rotation, getRandV(), mass};
-    }
+        pos.x = (float)GetRandomValue((int)radius, (int)WIDTH-radius);
+        pos.y = (float)GetRandomValue((int)radius, (int)HEIGHT-radius);
+
+        int idx = findFreeAsteroidIndex();
+        if (idx == -1) break;
+
+        createAsteroid(idx, pos, radius, getRandV());
+     }
 }
 
 void resolveCollisions(Asteroid *a, Asteroid *b) {
@@ -74,8 +145,8 @@ void resolveCollisions(Asteroid *a, Asteroid *b) {
      * 2) Compute unit normal/tangent at contact
      * 3) Separate positions to remove overlap (positional correction)
      * 4) Project velocities into normal/tangent components
-     * 5) Apply 1D elastic collision equations along the normal; tangential components remain
-     * unchanged. 6) Reconstruct final velocity vectors
+     * 5) Apply 1D elastic collision equations along the normal; tangential components remain unchanged. 
+     * 6) Reconstruct final velocity vectors
      */
 
     Vector2 delta = Vector2Subtract(a->pos, b->pos);
@@ -133,8 +204,8 @@ void checkCollisions() {
      * Check and resolve collisions for every unique asteroid pair
      */
 
-    for (int i = 0; i < NUM_ASTEROIDS; i++) {
-        for (int j = i + 1; j < NUM_ASTEROIDS; j++) {
+    for (int i = 0; i < MAX_ASTEROIDS; i++) {
+        for (int j = i + 1; j < MAX_ASTEROIDS; j++) {
             Asteroid *a = &ASTEROIDS[i];
             Asteroid *b = &ASTEROIDS[j];
 
@@ -168,6 +239,146 @@ void UpdateSpaceship(Spaceship *s) {
     s->pos.y += s->vel.y * VEL;
 }
 
+// TODO: Romper asteroides:
+// 1) Detectar cuando bala y asteroide chocan: HECHO
+//      - Obtener el índice del asteroide golpeado
+// 2) Si hay colisión, aumentar el número de impactos del asteroide: HECHO
+// 2) Asteroide grande >55 radio, 3 disparos mínimo -> añadir número de veces disparado al struct de
+// asteroide 
+// 3) Dependiendo del tamaño del asteroide, romperse en tamaños progresivamente más
+// pequeños 
+// 4) Romper asteroide:
+//      - Guardar la posición del ateroide actual
+//      - Eliminar asteroide (se marcan como inactivos, no se eliminan del array)
+//      - Crear 3 o 4 nuevos asteroides en la "misma" (pequeña variación dependiendo del radio)
+//      posición
+//      - Si el asteroide es pequeño <30 eliminarlo
+// 5) Crear un nuevo array de asteroides hijos con un máximo más alto (NUM_HIJOS * NUM_ASTEROIDES?)
+// 6) Cuando no hay asteroides en ninguno de los arrays, generar más
+// 7) enum de niveles (GRANDE, MEDIANO, PEQUEÑO)
+// Añadir al Asteroid struct:
+//      - int hits; (número de veces que ha sido disparado, comparar con maxHits para saber cuándo romper)
+//      - int maxHits; (dependiendo del tamaño)
+//      - int level; (dependiendo del radio para saber qué tipo de asteroide es: grande, mediano, pequeño) ENUM
+//      - int active;      // 1 = activo, 0 = inactivo
+// Flujo: 
+// 1) Detectar colisiones bala–asteroide
+// 2) Si hay colisión:
+//   - obtener el índice del asteroide golpeado
+//   - desactivar la bala
+//   - aumentar hits del asteroide
+// 3) Decidir si el asteroide se rompe:
+//   - si hits < maxHits -> no pasa nada
+//   - si hits >= maxHits:
+//        * si radio > RADIO_MIN -> crear hijos
+//        * si radio <= RADIO_MIN -> eliminar sin hijos
+// 4) Marcar el asteroide padre como inactivo
+// 5) Actualizar movimiento de asteroides activos
+// 6) Dibujar todos los asteroides activos
+// Cuando un asteroide se rompe:
+// 1) Guardar su posición
+// 2) Marcar el asteroide padre como inactivo
+// 3) Según su radio:
+//    - crear 3 o 4 hijos
+//    - radio de los hijos en un rango menor
+//    - pequeña variación de posición
+//    - velocidades ligeramente distintas
+// 4) Inicializar hijos con:
+//    - hits = 0
+//    - maxHits (por ahora constante global)
+
+void splitAsteroid(int parentIdx) {
+    Asteroid* p = &ASTEROIDS[parentIdx];
+    if (!p->active) return;
+
+    if (p->radius <= R_SMALL) {
+        p->active = 0;
+        return;
+    }
+
+    int childCount = 0;
+    float childRadius = 0.0f;
+
+    switch (p->size) {
+        case AST_BIG:
+            childCount = 3;
+            childRadius = p->radius * 0.55f;
+            break;
+        case AST_MED:
+            childCount = 2;
+            childRadius = p->radius * 0.60f;
+            break;
+        default:
+            p->active = 0;
+            return;
+    }
+
+    Vector2 initPos = p->pos; // TODO: add small random offset to avoid overlap
+    p->active = 0;
+
+    for (int i = 0; i < childCount; i++) {
+        int idx = findFreeAsteroidIndex();
+        if (idx == -1) return;
+
+        Vector2 velDir = getRandV();
+        createAsteroid(idx, initPos, childRadius, velDir);
+        ASTEROIDS[idx].vel = Vector2Scale(ASTEROIDS[idx].vel, 1.3f);
+    }
+}
+
+void UpdateAsteroids() {
+    /**
+     * Update asteroid positions, screen wrap-around, and visual rotation
+     */
+
+    for (int i = 0; i < MAX_ASTEROIDS; i++) {
+        Asteroid *a = &ASTEROIDS[i];
+        if (!a->active) continue;
+
+        a->pos.x += a->vel.x * SCALE;
+        a->pos.y += a->vel.y * SCALE;
+
+        if (a->pos.x + a->radius < 0)
+            a->pos.x = WIDTH;
+        if (a->pos.x - a->radius > WIDTH)
+            a->pos.x = 0;
+        if (a->pos.y + a->radius < 0)
+            a->pos.y = HEIGHT;
+        if (a->pos.y - a->radius > HEIGHT)
+            a->pos.y = 0;
+
+        a->rotation += SCALE;
+    }
+}
+
+void handleBulletAsteroidCollisions() {
+    /**
+     * Checks for collisions between bullets and asteroids.
+     */
+    for (int bulletIdx = 0; bulletIdx < NUM_BULLETS; bulletIdx++) {
+        if (!bulletActive[bulletIdx]) continue;
+        Bullet *b = &BULLETS[bulletIdx];
+
+        for (int astIdx = 0; astIdx < MAX_ASTEROIDS; astIdx++) {
+            Asteroid *a = &ASTEROIDS[astIdx];
+            if (!a->active) continue;
+            
+            float dx = b->pos.x - a->pos.x;
+            float dy = b->pos.y - a->pos.y;
+            float r = b->radius + a->radius;
+
+            if (dx * dx + dy * dy <= r * r) {
+                bulletActive[bulletIdx] = 0;
+                a->hits++;
+                if (a->hits >= a->maxHits) {
+                    splitAsteroid(astIdx);
+                }
+                break;
+            }
+        }
+    }
+}
+
 // TODO: Shooting
 // Mecánica de disparo:
 // 1. Obtener la posición actual de la nave espacial
@@ -184,9 +395,7 @@ void UpdateSpaceship(Spaceship *s) {
 // - checkBulletBounds(Bullet* b): recorre el array de balas y comprueba si está fuera de los
 // límites o si golpea un asteroide
 // - Envolver todo en el método shoot(Spaceship* s) para que sea más limpio
-
 // Función para comprobar espacio libre en el array de balas?
-
 // Si no hay espacio libre, eliminar la primera (FIFO)
 // Si hay espacio libre, crear bala
 
@@ -221,31 +430,6 @@ void drawBullets() {
     }
 }
 
-int bulletHit() {
-    /**
-     * Checks for collisions between bullets and asteroids.
-     */
-
-    for (int i = 0; i < NUM_BULLETS; i++) {
-        if (!bulletActive[i])
-            continue;
-        Bullet *b = &BULLETS[i];
-
-        for (int j = 0; j < NUM_ASTEROIDS; j++) {
-            Asteroid *a = &ASTEROIDS[j];
-
-            float dx = b->pos.x - a->pos.x;
-            float dy = b->pos.y - a->pos.y;
-            float r = b->radius + a->radius;
-
-            if (dx * dx + dy * dy <= r * r) {
-                return 1;
-            }
-        }
-    }
-    return 0;
-}
-
 void updateBullets() {
     /**
      * Deactivates bullets that go off-screen or hit an asteroid.
@@ -257,7 +441,7 @@ void updateBullets() {
         Bullet *b = &BULLETS[i];
 
         if (b->pos.x + b->radius < 0 || b->pos.x - b->radius > WIDTH || b->pos.y + b->radius < 0 ||
-            b->pos.y - b->radius > HEIGHT || bulletHit()) {
+            b->pos.y - b->radius > HEIGHT) {
             bulletActive[i] = 0;
         }
     }
@@ -283,85 +467,11 @@ void Shoot(Spaceship *s) {
      */
 
     Vector2 position = s->pos;
-    updateBullets();
     createBullet(position, (Vector2){1, 0});
     moveBullet();
+    updateBullets();
+    handleBulletAsteroidCollisions();
     drawBullets();
-}
-
-// TODO: Romper asteroides:
-// 1) Detectar cuando bala y asteroide chocan: HECHO
-//      - Obtener el índice del asteroide golpeado
-// 2) Si hay colisión, aumentar el número de impactos del asteroide: HECHO
-// 2) Asteroide grande >55 radio, 3 disparos mínimo -> añadir número de veces disparado al struct de
-// asteroide 
-// 3) Dependiendo del tamaño del asteroide, romperse en tamaños progresivamente más
-// pequeños 
-// 4) Romper asteroide:
-//      - Guardar la posición del ateroide actual
-//      - Eliminar asteroide (se marcan como inactivos, no se eliminan del array)
-//      - Crear 3 o 4 nuevos asteroides en la "misma" (pequeña variación dependiendo del radio)
-//      posición
-//      - Si el asteroide es pequeño <30 eliminarlo
-// 5) Crear un nuevo array de asteroides hijos con un máximo más alto (NUM_HIJOS * NUM_ASTEROIDES?)
-// 6) Cuando no hay asteroides en ninguno de los arrays, generar más
-// 7) enum de niveles (GRANDE, MEDIANO, PEQUEÑO)
-
-// Añadir al Asteroid struct:
-//      - int hits; (número de veces que ha sido disparado, comparar con maxHits para saber cuándo romper)
-//      - int maxHits; (dependiendo del tamaño)
-//      - int level; (dependiendo del radio para saber qué tipo de asteroide es: grande, mediano, pequeño) ENUM
-//      - int active;      // 1 = activo, 0 = inactivo
-
-// Flujo: 
-// 1) Detectar colisiones bala–asteroide
-// 2) Si hay colisión:
-//   - obtener el índice del asteroide golpeado
-//   - desactivar la bala
-//   - aumentar hits del asteroide
-// 3) Decidir si el asteroide se rompe:
-//   - si hits < maxHits -> no pasa nada
-//   - si hits >= maxHits:
-//        * si radio > RADIO_MIN -> crear hijos
-//        * si radio <= RADIO_MIN -> eliminar sin hijos
-// 4) Marcar el asteroide padre como inactivo
-// 5) Actualizar movimiento de asteroides activos
-// 6) Dibujar todos los asteroides activos
-
-// Cuando un asteroide se rompe:
-// 1) Guardar su posición
-// 2) Marcar el asteroide padre como inactivo
-// 3) Según su radio:
-//    - crear 3 o 4 hijos
-//    - radio de los hijos en un rango menor
-//    - pequeña variación de posición
-//    - velocidades ligeramente distintas
-// 4) Inicializar hijos con:
-//    - hits = 0
-//    - maxHits (por ahora constante global)
-
-void UpdateAsteroids() {
-    /**
-     * Update asteroid positions, screen wrap-around, and visual rotation
-     */
-
-    for (int i = 0; i < NUM_ASTEROIDS; i++) {
-        Asteroid *a = &ASTEROIDS[i];
-
-        a->pos.x += a->vel.x * SCALE;
-        a->pos.y += a->vel.y * SCALE;
-
-        if (a->pos.x + a->radius < 0)
-            a->pos.x = WIDTH;
-        if (a->pos.x - a->radius > WIDTH)
-            a->pos.x = 0;
-        if (a->pos.y + a->radius < 0)
-            a->pos.y = HEIGHT;
-        if (a->pos.y - a->radius > HEIGHT)
-            a->pos.y = 0;
-
-        a->rotation += SCALE;
-    }
 }
 
 void UpdateGame(Spaceship *s) {
@@ -373,9 +483,11 @@ void UpdateGame(Spaceship *s) {
 void DrawSpaceShip(Spaceship *s) { DrawPoly(s->pos, 3, s->radius, 120, BLUE); }
 
 void DrawAsteroids() {
-    for (int i = 0; i < NUM_ASTEROIDS; i++) {
+    for (int i = 0; i < MAX_ASTEROIDS; i++) {
         Asteroid *a = &ASTEROIDS[i];
-        DrawPoly(a->pos, a->sides, a->radius, a->rotation, RAYWHITE);
+        if (a->active) {
+            DrawPoly(a->pos, a->sides, a->radius, a->rotation, RAYWHITE);
+        }
     }
 }
 
