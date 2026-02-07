@@ -1,5 +1,4 @@
 // TODO: Check game over
-// TODO: Break / Split asteroids
 
 #include "raylib.h"
 #include "raymath.h"
@@ -239,7 +238,6 @@ void UpdateSpaceship(Spaceship *s) {
     s->pos.y += s->vel.y * VEL;
 }
 
-// TODO: Romper asteroides:
 void splitAsteroid(int parentIdx) {
     Asteroid* p = &ASTEROIDS[parentIdx];
     if (!p->active) return;
@@ -332,7 +330,6 @@ void handleBulletAsteroidCollisions() {
     }
 }
 
-// TODO: Shooting
 void createBullet(Vector2 pos, Vector2 velDir) {
     /**
      * Creates a bullet at the given position and direction if SPACE is pressed.
