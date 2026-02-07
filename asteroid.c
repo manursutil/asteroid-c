@@ -42,17 +42,17 @@ int bulletActive[NUM_BULLETS];
 
 Vector2 getRandV() {
     /**
-    * Returns a random unit vector (random direction)
-    */
+     * Returns a random unit vector (random direction)
+     */
 
     float angle = (float)GetRandomValue(0, 369) * DEG2RAD;
     return (Vector2){cosf(angle), sinf(angle)};
 }
 
 void initAsteroids() {
-    /** 
-    * Initialize asteroids with random positions/sizes/sides and random directions
-    */
+    /**
+     * Initialize asteroids with random positions/sizes/sides and random directions
+     */
 
     for (int i = 0; i < NUM_ASTEROIDS; i++) {
         Vector2 pos;
@@ -68,15 +68,15 @@ void initAsteroids() {
 
 void resolveCollisions(Asteroid *a, Asteroid *b) {
     /**
-    * Resolve an asteroid-asteroid collision as a perfectly elastic collision.
-    * Steps:
-    * 1) Early-out if not overlapping
-    * 2) Compute unit normal/tangent at contact
-    * 3) Separate positions to remove overlap (positional correction)
-    * 4) Project velocities into normal/tangent components
-    * 5) Apply 1D elastic collision equations along the normal; tangential components remain unchanged. 
-    * 6) Reconstruct final velocity vectors
-    */
+     * Resolve an asteroid-asteroid collision as a perfectly elastic collision.
+     * Steps:
+     * 1) Early-out if not overlapping
+     * 2) Compute unit normal/tangent at contact
+     * 3) Separate positions to remove overlap (positional correction)
+     * 4) Project velocities into normal/tangent components
+     * 5) Apply 1D elastic collision equations along the normal; tangential components remain
+     * unchanged. 6) Reconstruct final velocity vectors
+     */
 
     Vector2 delta = Vector2Subtract(a->pos, b->pos);
     float dsq = Vector2LengthSqr(delta);
@@ -130,8 +130,8 @@ void resolveCollisions(Asteroid *a, Asteroid *b) {
 
 void checkCollisions() {
     /**
-    * Check and resolve collisions for every unique asteroid pair
-    */
+     * Check and resolve collisions for every unique asteroid pair
+     */
 
     for (int i = 0; i < NUM_ASTEROIDS; i++) {
         for (int j = i + 1; j < NUM_ASTEROIDS; j++) {
@@ -145,8 +145,8 @@ void checkCollisions() {
 
 void MoveSpaceship(Spaceship *s) {
     /**
-    * Ship movement with keyboard (direct position changes)
-    */
+     * Ship movement with keyboard (direct position changes)
+     */
 
     if (IsKeyDown(KEY_RIGHT))
         s->pos.x += VEL;
@@ -160,8 +160,8 @@ void MoveSpaceship(Spaceship *s) {
 
 void UpdateSpaceship(Spaceship *s) {
     /**
-    *Update ship state
-    */
+     *Update ship state
+     */
 
     MoveSpaceship(s);
     s->pos.x += s->vel.x * VEL;
@@ -192,8 +192,8 @@ void UpdateSpaceship(Spaceship *s) {
 
 void createBullet(Vector2 pos, Vector2 velDir) {
     /**
-    * Creates a bullet at the given position and direction if SPACE is pressed.
-    */
+     * Creates a bullet at the given position and direction if SPACE is pressed.
+     */
 
     if (!IsKeyPressed(KEY_SPACE))
         return;
@@ -223,8 +223,8 @@ void drawBullets() {
 
 int bulletHit() {
     /**
-    * Checks for collisions between bullets and asteroids.
-    */
+     * Checks for collisions between bullets and asteroids.
+     */
 
     for (int i = 0; i < NUM_BULLETS; i++) {
         if (!bulletActive[i])
@@ -238,7 +238,7 @@ int bulletHit() {
             float dy = b->pos.y - a->pos.y;
             float r = b->radius + a->radius;
 
-            if (dx*dx + dy*dy <= r*r) {
+            if (dx * dx + dy * dy <= r * r) {
                 return 1;
             }
         }
@@ -248,8 +248,8 @@ int bulletHit() {
 
 void updateBullets() {
     /**
-    * Deactivates bullets that go off-screen or hit an asteroid.
-    */
+     * Deactivates bullets that go off-screen or hit an asteroid.
+     */
 
     for (int i = 0; i < NUM_BULLETS; i++) {
         if (!bulletActive[i])
@@ -265,8 +265,8 @@ void updateBullets() {
 
 void moveBullet() {
     /**
-    * Moves all active bullets according to their velocity.
-    */
+     * Moves all active bullets according to their velocity.
+     */
 
     for (int i = 0; i < NUM_BULLETS; i++) {
         if (!bulletActive[i])
@@ -279,8 +279,8 @@ void moveBullet() {
 
 void Shoot(Spaceship *s) {
     /**
-    * Handles bullet creation, update, movement, and rendering.
-    */
+     * Handles bullet creation, update, movement, and rendering.
+     */
 
     Vector2 position = s->pos;
     updateBullets();
@@ -289,10 +289,61 @@ void Shoot(Spaceship *s) {
     drawBullets();
 }
 
+// TODO: Romper asteroides:
+// 1) Detectar cuando bala y asteroide chocan: HECHO
+//      - Obtener el índice del asteroide golpeado
+// 2) Si hay colisión, aumentar el número de impactos del asteroide: HECHO
+// 2) Asteroide grande >55 radio, 3 disparos mínimo -> añadir número de veces disparado al struct de
+// asteroide 
+// 3) Dependiendo del tamaño del asteroide, romperse en tamaños progresivamente más
+// pequeños 
+// 4) Romper asteroide:
+//      - Guardar la posición del ateroide actual
+//      - Eliminar asteroide (se marcan como inactivos, no se eliminan del array)
+//      - Crear 3 o 4 nuevos asteroides en la "misma" (pequeña variación dependiendo del radio)
+//      posición
+//      - Si el asteroide es pequeño <30 eliminarlo
+// 5) Crear un nuevo array de asteroides hijos con un máximo más alto (NUM_HIJOS * NUM_ASTEROIDES?)
+// 6) Cuando no hay asteroides en ninguno de los arrays, generar más
+// 7) enum de niveles (GRANDE, MEDIANO, PEQUEÑO)
+
+// Añadir al Asteroid struct:
+//      - int hits; (número de veces que ha sido disparado, comparar con maxHits para saber cuándo romper)
+//      - int maxHits; (dependiendo del tamaño)
+//      - int level; (dependiendo del radio para saber qué tipo de asteroide es: grande, mediano, pequeño) ENUM
+//      - int active;      // 1 = activo, 0 = inactivo
+
+// Flujo: 
+// 1) Detectar colisiones bala–asteroide
+// 2) Si hay colisión:
+//   - obtener el índice del asteroide golpeado
+//   - desactivar la bala
+//   - aumentar hits del asteroide
+// 3) Decidir si el asteroide se rompe:
+//   - si hits < maxHits -> no pasa nada
+//   - si hits >= maxHits:
+//        * si radio > RADIO_MIN -> crear hijos
+//        * si radio <= RADIO_MIN -> eliminar sin hijos
+// 4) Marcar el asteroide padre como inactivo
+// 5) Actualizar movimiento de asteroides activos
+// 6) Dibujar todos los asteroides activos
+
+// Cuando un asteroide se rompe:
+// 1) Guardar su posición
+// 2) Marcar el asteroide padre como inactivo
+// 3) Según su radio:
+//    - crear 3 o 4 hijos
+//    - radio de los hijos en un rango menor
+//    - pequeña variación de posición
+//    - velocidades ligeramente distintas
+// 4) Inicializar hijos con:
+//    - hits = 0
+//    - maxHits (por ahora constante global)
+
 void UpdateAsteroids() {
     /**
-    * Update asteroid positions, screen wrap-around, and visual rotation
-    */
+     * Update asteroid positions, screen wrap-around, and visual rotation
+     */
 
     for (int i = 0; i < NUM_ASTEROIDS; i++) {
         Asteroid *a = &ASTEROIDS[i];
