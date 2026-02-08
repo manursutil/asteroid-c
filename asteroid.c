@@ -1,5 +1,4 @@
 // TODO: Hacer que la nave no aparezca cerca de los asteroides al iniciar el juego (o que se mueva a una posición segura si esto ocurre)
-// TODO: Puntuación 
 // TODO: No permitir spamming de balas (limitar a 1 cada 0.5 segundos o algo así)
 // TODO: Cuando no haya más asteroides, mostrar mensaje de "You Win!" y permitir reiniciar el juego
 
@@ -317,7 +316,7 @@ void UpdateAsteroids() {
     }
 }
 
-void handleBulletAsteroidCollisions() {
+void handleBulletAsteroidCollisions(int* score) {
     /**
      * Checks for collisions between bullets and asteroids.
      */
@@ -340,6 +339,7 @@ void handleBulletAsteroidCollisions() {
                 a->hits++;
                 if (a->hits >= a->maxHits) {
                     splitAsteroid(astIdx);
+                    (*score) += 10;
                 }
                 break;
             }
@@ -409,7 +409,7 @@ void moveBullet() {
     }
 }
 
-void Shoot(Spaceship *s) {
+void Shoot(Spaceship *s, int* score) {
     /**
      * Handles bullet creation, update, movement, and rendering.
      */
@@ -418,7 +418,7 @@ void Shoot(Spaceship *s) {
     createBullet(position, (Vector2){1, 0});
     moveBullet();
     updateBullets();
-    handleBulletAsteroidCollisions();
+    handleBulletAsteroidCollisions(score);
     drawBullets();
 }
 
@@ -454,6 +454,10 @@ void DrawAsteroids() {
     }
 }
 
+void DrawScore(int* score) {
+    DrawText(TextFormat("Score: %d", *score), 0, 0, 40, GREEN);
+}
+
 int main(void) {
     InitWindow(WIDTH, HEIGHT, "Asteroid");
     SetTargetFPS(60);
@@ -463,14 +467,16 @@ int main(void) {
         (Spaceship){(Vector2){(float)WIDTH / 2, (float)HEIGHT / 2}, 10, (Vector2){0, 0}};
 
     int gameOver = 0;
+    int score = 0;
 
     while (!WindowShouldClose() && !gameOver) {
         BeginDrawing();
         ClearBackground(BLACK);
+        DrawScore(&score);
         UpdateGame(&spaceship);
         DrawAsteroids();
         DrawSpaceShip(&spaceship);
-        Shoot(&spaceship);
+        Shoot(&spaceship, &score);
         checkGameOver(&spaceship, &gameOver);
         EndDrawing();
     }
