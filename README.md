@@ -1,6 +1,7 @@
 # Asteroid game in C
 
-**Work in progress**
+**Work in progress**. Still many things missing and broken
+---
 
 Small Asteroids game written in C using the Raylib library
 
