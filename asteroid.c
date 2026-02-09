@@ -387,8 +387,6 @@ void createBullet(Vector2 pos, Vector2 velDir) {
         }
     }
 
-    // TODO: Implementar FIFO con queue
-    // Esto funciona por ahora
     BULLETS[0] = (Bullet){pos, 3, velDir};
     bulletActive[0] = 1;
 }
