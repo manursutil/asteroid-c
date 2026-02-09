@@ -1,7 +1,7 @@
-// TODO: Hacer que la nave no aparezca cerca de los asteroides al iniciar el juego (o que se mueva a
-// una posición segura si esto ocurre)
 // TODO: No permitir spamming de balas (limitar a 1 cada 0.5 segundos o algo así)
 // TODO: Permitir reiniciar el juego
+
+// TODO: Refactorizar en diferentes módulos
 
 #include "raylib.h"
 #include "raymath.h"
