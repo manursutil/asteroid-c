@@ -1,6 +1,4 @@
 // TODO: No permitir spamming de balas (limitar a 1 cada 0.5 segundos o algo así)
-// TODO: Permitir reiniciar el juego
-
 // TODO: Refactorizar en diferentes módulos
 
 #include "raylib.h"
@@ -248,7 +246,7 @@ void UpdateSpaceship(Spaceship *s) {
 }
 
 Vector2 initialSpaceshipPosition() {
-    Vector2 center = {(float)WIDTH/2, (float)HEIGHT/2};
+    Vector2 center = {(float)WIDTH / 2, (float)HEIGHT / 2};
     Vector2 avg = {0.0f, 0.0f};
     for (int i = 0; i < NUM_START_ASTEROIDS; i++) {
         avg.x += ASTEROIDS[i].pos.x;
@@ -260,10 +258,14 @@ Vector2 initialSpaceshipPosition() {
     Vector2 dir = {center.x - avg.x, center.y - avg.y};
     Vector2 shipPos = {center.x + dir.x, center.y + dir.y};
 
-    if (shipPos.x < 0) shipPos.x = 0;
-    if (shipPos.y < 0) shipPos.y = 0;
-    if (shipPos.x > WIDTH)  shipPos.x = WIDTH;
-    if (shipPos.y > HEIGHT) shipPos.y = HEIGHT;
+    if (shipPos.x < 0)
+        shipPos.x = 0;
+    if (shipPos.y < 0)
+        shipPos.y = 0;
+    if (shipPos.x > WIDTH)
+        shipPos.x = WIDTH;
+    if (shipPos.y > HEIGHT)
+        shipPos.y = HEIGHT;
 
     return shipPos;
 }
@@ -486,37 +488,60 @@ void DrawAsteroids() {
 
 void DrawScore(int *score) { DrawText(TextFormat("Score: %d", *score), 0, 0, 40, GREEN); }
 
+Spaceship initSpaceship() { return (Spaceship){initialSpaceshipPosition(), 10, (Vector2){0, 0}}; }
+
+void restartGame(int *gameOver, int *score, Spaceship *spaceship) {
+    initAsteroids();
+    *spaceship = initSpaceship();
+    *score = 0;
+    *gameOver = 0;
+}
+
 int main(void) {
     InitWindow(WIDTH, HEIGHT, "Asteroid");
     SetTargetFPS(60);
 
     initAsteroids();
-    Spaceship spaceship =
-        (Spaceship){initialSpaceshipPosition(), 10, (Vector2){0, 0}};
+    Spaceship spaceship = initSpaceship();
 
     int gameOver = 0;
     int score = 0;
 
-    while (!WindowShouldClose() && !gameOver) {
+    while (!WindowShouldClose()) {
         BeginDrawing();
         ClearBackground(BLACK);
-        DrawScore(&score);
-        UpdateGame(&spaceship);
-        DrawAsteroids();
-        DrawSpaceShip(&spaceship);
-        Shoot(&spaceship, &score);
-        checkGameOver(&spaceship, &gameOver);
-        if (checkWin())
-            DrawText("You Win!", WIDTH / 2 - MeasureText("You Win!", 40) / 2, HEIGHT / 2 - 20, 40,
-                     GREEN);
-        EndDrawing();
-    }
+        if (!gameOver) {
+            DrawScore(&score);
+            UpdateGame(&spaceship);
+            DrawAsteroids();
+            DrawSpaceShip(&spaceship);
+            Shoot(&spaceship, &score);
+            checkGameOver(&spaceship, &gameOver);
 
-    while (!WindowShouldClose() && gameOver) {
-        BeginDrawing();
-        ClearBackground(BLACK);
-        DrawText("Game Over", WIDTH / 2 - MeasureText("Game Over", 40) / 2, HEIGHT / 2 - 20, 40,
-                 RED);
+            if (checkWin()) {
+                DrawText("You Win!", WIDTH / 2 - MeasureText("You Win!", 40) / 2, HEIGHT / 2 - 20,
+                         40, GREEN);
+                DrawText("Press [R] to Restart",
+                         WIDTH / 2 - MeasureText("Press [R] tp Restart", 40) / 2, HEIGHT / 2 + 60,
+                         40, GREEN);
+
+                if (IsKeyPressed(KEY_R)) {
+                    restartGame(&gameOver, &score, &spaceship);
+                }
+            }
+
+        } else {
+
+            DrawText("Game Over", WIDTH / 2 - MeasureText("Game Over", 40) / 2, HEIGHT / 2 - 20, 40,
+                     RED);
+            DrawText("Press [R] to Restart",
+                     WIDTH / 2 - MeasureText("Press [R] tp Restart", 40) / 2, HEIGHT / 2 + 60, 40,
+                     GREEN);
+
+            if (IsKeyPressed(KEY_R))
+                restartGame(&gameOver, &score, &spaceship);
+        }
+
         EndDrawing();
     }
 
