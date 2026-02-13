@@ -237,7 +237,7 @@ void MoveSpaceship(Spaceship *s) {
 
 void UpdateSpaceship(Spaceship *s) {
     /**
-     *Update ship state
+     * Update ship state
      */
 
     MoveSpaceship(s);
@@ -520,7 +520,7 @@ int main(void) {
                 DrawText("You Win!", WIDTH / 2 - MeasureText("You Win!", 40) / 2, HEIGHT / 2 - 20,
                          40, GREEN);
                 DrawText("Press [R] to Restart",
-                         WIDTH / 2 - MeasureText("Press [R] tp Restart", 40) / 2, HEIGHT / 2 + 60,
+                         WIDTH / 2 - MeasureText("Press [R] to Restart", 40) / 2, HEIGHT / 2 + 60,
                          40, GREEN);
 
                 if (IsKeyPressed(KEY_R)) {
@@ -533,7 +533,7 @@ int main(void) {
             DrawText("Game Over", WIDTH / 2 - MeasureText("Game Over", 40) / 2, HEIGHT / 2 - 20, 40,
                      RED);
             DrawText("Press [R] to Restart",
-                     WIDTH / 2 - MeasureText("Press [R] tp Restart", 40) / 2, HEIGHT / 2 + 60, 40,
+                     WIDTH / 2 - MeasureText("Press [R] to Restart", 40) / 2, HEIGHT / 2 + 60, 40,
                      GREEN);
 
             if (IsKeyPressed(KEY_R))
