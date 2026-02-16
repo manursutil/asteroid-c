@@ -1,4 +1,3 @@
-// TODO: No permitir spamming de balas (limitar a 1 cada 0.5 segundos o algo así)
 // TODO: Refactorizar en diferentes módulos
 
 #include "raylib.h"
@@ -44,7 +43,7 @@ typedef struct {
 typedef struct {
     Vector2 pos;
     float radius;
-    Vector2 vel; // TODO: This is not used. Figure out what to do with this
+    Vector2 vel;
 } Spaceship;
 
 typedef struct {
@@ -376,9 +375,6 @@ void createBullet(Vector2 pos, Vector2 velDir) {
      * Creates a bullet at the given position and direction if SPACE is pressed.
      */
 
-    if (!IsKeyPressed(KEY_SPACE))
-        return;
-
     for (int i = 0; i < NUM_BULLETS; i++) {
         if (!bulletActive[i]) {
             BULLETS[i] = (Bullet){pos, 3, velDir};
@@ -431,13 +427,30 @@ void moveBullet() {
     }
 }
 
-void Shoot(Spaceship *s, int *score) {
+void tempDisableShooting(float seconds, int *shootingEnabled, double *startTime) {
+    /**
+     * Cooldown for shooting bullets
+     */
+
+    double currentTime = GetTime();
+
+    if (!(*shootingEnabled)) {
+        if ((currentTime - *startTime) >= seconds)
+            *shootingEnabled = 1;
+    }
+}
+
+void Shoot(Spaceship *s, int *score, int *shootingEnabled, double *startTime) {
     /**
      * Handles bullet creation, update, movement, and rendering.
      */
 
-    Vector2 position = s->pos;
-    createBullet(position, (Vector2){1, 0});
+    if (*shootingEnabled && IsKeyPressed(KEY_SPACE)) {
+        Vector2 position = s->pos;
+        createBullet(position, (Vector2){1, 0});
+        *shootingEnabled = 0;
+        *startTime = GetTime();
+    }
     moveBullet();
     updateBullets();
     handleBulletAsteroidCollisions(score);
@@ -504,6 +517,8 @@ int main(void) {
 
     int gameOver = 0;
     int score = 0;
+    int shootingEnabled = 1;
+    double shootingStartTime = 0.0f;
 
     while (!WindowShouldClose()) {
         BeginDrawing();
@@ -513,7 +528,8 @@ int main(void) {
             UpdateGame(&spaceship);
             DrawAsteroids();
             DrawSpaceShip(&spaceship);
-            Shoot(&spaceship, &score);
+            tempDisableShooting(0.3f, &shootingEnabled, &shootingStartTime);
+            Shoot(&spaceship, &score, &shootingEnabled, &shootingStartTime);
             checkGameOver(&spaceship, &gameOver);
 
             if (checkWin()) {
@@ -529,7 +545,6 @@ int main(void) {
             }
 
         } else {
-
             DrawText("Game Over", WIDTH / 2 - MeasureText("Game Over", 40) / 2, HEIGHT / 2 - 20, 40,
                      RED);
             DrawText("Press [R] to Restart",
