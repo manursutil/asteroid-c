@@ -22,6 +22,7 @@
 #define NUM_BULLETS 10
 
 #define MAX_STARS 100
+#define MAX_PARTICLES 200
 
 typedef enum {
     AST_SMALL,
@@ -60,14 +61,24 @@ typedef struct {
     float phase;
 } Star;
 
+typedef struct {
+    Vector2 pos;
+    Vector2 vel;
+    float lifetime;
+    float maxLifetime;
+    Color color;
+    float size;
+} Particle;
+
 Asteroid ASTEROIDS[MAX_ASTEROIDS];
 Bullet BULLETS[NUM_BULLETS];
 int bulletActive[NUM_BULLETS];
 Star STARS[MAX_STARS];
+Particle PARTICLES[MAX_PARTICLES];
 
 void initStars() {
     for (int i = 0; i < MAX_STARS; i++) {
-        STARS[i].pos = (Vector2) { (float)GetRandomValue(0, WIDTH), (float)GetRandomValue(0, HEIGHT) };
+        STARS[i].pos = (Vector2){(float)GetRandomValue(0, WIDTH), (float)GetRandomValue(0, HEIGHT)};
         STARS[i].brightness = (float)GetRandomValue(50, 150) / 255.0f;
         STARS[i].phase = (float)GetRandomValue(0, 360);
     }
@@ -79,11 +90,51 @@ void drawStars() {
         float twinkle = 0.7f + 0.3f * sinf(STARS[i].phase);
         float alpha = STARS[i].brightness * twinkle;
 
-        Color starColor = (Color) {200, 200, 255, (alpha*255)};
+        Color starColor = (Color){200, 200, 255, (alpha * 255)};
         DrawPixel(STARS[i].pos.x, STARS[i].pos.y, starColor);
 
         if (i % 7 == 0) {
-            DrawPixel(STARS[i].pos.x + 1, STARS[i].pos.y, (Color) {200, 200, 255, (alpha*128)});
+            DrawPixel(STARS[i].pos.x + 1, STARS[i].pos.y, (Color){200, 200, 255, (alpha * 128)});
+        }
+    }
+}
+
+void createParticle(Vector2 pos, Vector2 vel, Color color, float lifetime, float size) {
+    for (int i = 0; i < MAX_PARTICLES; i++) {
+        if (PARTICLES[i].lifetime <= 0) {
+            PARTICLES[i].pos = pos;
+            PARTICLES[i].vel = vel;
+            PARTICLES[i].color = color;
+            PARTICLES[i].size = size;
+            PARTICLES[i].lifetime = lifetime;
+            PARTICLES[i].maxLifetime = lifetime;
+            return;
+        }
+    }
+}
+
+void updateParticles() {
+    for (int i = 0; i < MAX_PARTICLES; i++) {
+        if (PARTICLES[i].lifetime > 0) {
+            PARTICLES[i].pos.x += PARTICLES[i].vel.x;
+            PARTICLES[i].pos.y += PARTICLES[i].vel.y;
+            PARTICLES[i].lifetime -= GetFrameTime();
+
+            float lifeRatio = PARTICLES[i].lifetime / PARTICLES[i].maxLifetime;
+            PARTICLES[i].color.a = 255 * lifeRatio;
+        }
+    }
+}
+
+void drawParticles() {
+    for (int i = 0; i < MAX_PARTICLES; i++) {
+        if (PARTICLES[i].lifetime > 0) {
+            float lifeRatio = PARTICLES[i].lifetime / PARTICLES[i].maxLifetime;
+            float currentSize = PARTICLES[i].size * lifeRatio;
+
+            DrawCircleV(PARTICLES[i].pos, currentSize * 1.5f,
+                        Fade(PARTICLES[i].color, 0.3f * lifeRatio));
+            DrawCircleV(PARTICLES[i].pos, currentSize, PARTICLES[i].color);
         }
     }
 }
@@ -234,6 +285,12 @@ void resolveCollisions(Asteroid *a, Asteroid *b) {
 
     a->vel = velFinal_A;
     b->vel = velFinal_B;
+
+    Vector2 collisionPoint = Vector2Add(a->pos, Vector2Scale(unitNormal, -a->radius));
+    for (int i = 0; i < 3; i++) {
+        Vector2 pVel = Vector2Scale(getRandV(), 1.5f);
+        createParticle(collisionPoint, pVel, (Color){255, 200, 100, 255}, 0.5f, 2.0f);
+    }
 }
 
 void checkCollisions() {
@@ -305,6 +362,14 @@ void splitAsteroid(int parentIdx) {
     Asteroid *p = &ASTEROIDS[parentIdx];
     if (!p->active)
         return;
+
+    int numParticles = (int)(p->radius / 5);
+    for (int i = 0; i < numParticles; i++) {
+        Vector2 pVel = Vector2Scale(getRandV(), 3.0f);
+        Color particleColor =
+            GetRandomValue(0, 1) ? (Color){255, 150, 50, 255} : (Color){255, 100, 30, 255};
+        createParticle(p->pos, pVel, particleColor, 1.0f, 4.0f);
+    }
 
     if (p->radius <= R_SMALL) {
         p->active = 0;
@@ -516,6 +581,7 @@ void UpdateGame(Spaceship *s) {
     UpdateAsteroids();
     UpdateSpaceship(s);
     checkCollisions();
+    updateParticles();
 }
 
 void DrawSpaceShip(Spaceship *s) { DrawPoly(s->pos, 3, s->radius, 120, BLUE); }
@@ -553,6 +619,9 @@ int main(void) {
     int shootingEnabled = 1;
     double shootingStartTime = 0.0f;
 
+    for (int i = 0; i < MAX_PARTICLES; i++)
+        PARTICLES[i].lifetime = 0;
+
     while (!WindowShouldClose()) {
         BeginDrawing();
         ClearBackground((Color){5, 5, 15, 255});
@@ -560,6 +629,7 @@ int main(void) {
         if (!gameOver) {
             DrawScore(&score);
             UpdateGame(&spaceship);
+            drawParticles();
             DrawAsteroids();
             DrawSpaceShip(&spaceship);
             tempDisableShooting(0.3f, &shootingEnabled, &shootingStartTime);
