@@ -1,8 +1,6 @@
 # Asteroid game in C
 
-**Work in progress. Still many things missing and broken**
-
-Small Asteroids game written in C using the Raylib library
+A classic Asteroids-style arcade game built in C with Raylib
 
 ## Installation and usage 
 
@@ -24,3 +22,11 @@ If this does not work (for example on Windows, or with a raylib installation tha
 
 See the official raylib repository for platform-specific installation and build instructions:
 https://github.com/raysan5/raylib#build-and-installation
+
+## Gameplay
+
+- **Move**: Arrow keys (↑ ↓ ← →)
+- **Shoot**: Space bar
+- **Restart**: R (after game over/win)
+
+Destroy all asteroids to win! Larger asteroids require multiple hits and split into smaller pieces. Avoid colliding with any asteroid or it's game over.
