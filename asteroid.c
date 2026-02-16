@@ -21,6 +21,8 @@
 #define BULLET_SPEED 5.0f
 #define NUM_BULLETS 10
 
+#define MAX_STARS 100
+
 typedef enum {
     AST_SMALL,
     AST_MED,
@@ -52,9 +54,39 @@ typedef struct {
     Vector2 vel;
 } Bullet;
 
+typedef struct {
+    Vector2 pos;
+    float brightness;
+    float phase;
+} Star;
+
 Asteroid ASTEROIDS[MAX_ASTEROIDS];
 Bullet BULLETS[NUM_BULLETS];
 int bulletActive[NUM_BULLETS];
+Star STARS[MAX_STARS];
+
+void initStars() {
+    for (int i = 0; i < MAX_STARS; i++) {
+        STARS[i].pos = (Vector2) { (float)GetRandomValue(0, WIDTH), (float)GetRandomValue(0, HEIGHT) };
+        STARS[i].brightness = (float)GetRandomValue(50, 150) / 255.0f;
+        STARS[i].phase = (float)GetRandomValue(0, 360);
+    }
+}
+
+void drawStars() {
+    for (int i = 0; i < MAX_STARS; i++) {
+        STARS[i].phase += 0.02f;
+        float twinkle = 0.7f + 0.3f * sinf(STARS[i].phase);
+        float alpha = STARS[i].brightness * twinkle;
+
+        Color starColor = (Color) {200, 200, 255, (alpha*255)};
+        DrawPixel(STARS[i].pos.x, STARS[i].pos.y, starColor);
+
+        if (i % 7 == 0) {
+            DrawPixel(STARS[i].pos.x + 1, STARS[i].pos.y, (Color) {200, 200, 255, (alpha*128)});
+        }
+    }
+}
 
 Vector2 getRandV() {
     /**
@@ -513,6 +545,7 @@ int main(void) {
     SetTargetFPS(60);
 
     initAsteroids();
+    initStars();
     Spaceship spaceship = initSpaceship();
 
     int gameOver = 0;
@@ -522,7 +555,8 @@ int main(void) {
 
     while (!WindowShouldClose()) {
         BeginDrawing();
-        ClearBackground(BLACK);
+        ClearBackground((Color){5, 5, 15, 255});
+        drawStars();
         if (!gameOver) {
             DrawScore(&score);
             UpdateGame(&spaceship);
