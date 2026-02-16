@@ -584,18 +584,33 @@ void UpdateGame(Spaceship *s) {
     updateParticles();
 }
 
-void DrawSpaceShip(Spaceship *s) { DrawPoly(s->pos, 3, s->radius, 120, BLUE); }
+void DrawSpaceShip(Spaceship *s) {
+    DrawPoly(s->pos, 3, s->radius * 1.1f, 120, (Color){100, 180, 255, 255});
+    DrawPoly(s->pos, 3, s->radius, 120, (Color){150, 200, 255, 255});
+    DrawPoly(s->pos, 3, s->radius * 0.6f, 120, (Color){200, 230, 255, 255});
+}
 
 void DrawAsteroids() {
     for (int i = 0; i < MAX_ASTEROIDS; i++) {
         Asteroid *a = &ASTEROIDS[i];
         if (a->active) {
-            DrawPoly(a->pos, a->sides, a->radius, a->rotation, RAYWHITE);
+            Color baseColor = RAYWHITE;
+            if (a->hits >= a->maxHits - 1) {
+                baseColor = (Color){255, 150, 150, 255};
+            } else if (a->hits > 0) {
+                baseColor = (Color){255, 200, 200, 255};
+            }
+            DrawPoly(a->pos, a->sides, a->radius, a->rotation, baseColor);
         }
     }
 }
 
-void DrawScore(int *score) { DrawText(TextFormat("Score: %d", *score), 0, 0, 40, GREEN); }
+void DrawScore(int *score) {
+    const char *text = TextFormat("SCORE: %d", *score);
+
+    DrawText(text, 12, 12, 30, Fade(GREEN, 0.5f));
+    DrawText(text, 10, 10, 30, GREEN);
+}
 
 Spaceship initSpaceship() { return (Spaceship){initialSpaceshipPosition(), 10, (Vector2){0, 0}}; }
 
@@ -604,6 +619,36 @@ void restartGame(int *gameOver, int *score, Spaceship *spaceship) {
     *spaceship = initSpaceship();
     *score = 0;
     *gameOver = 0;
+}
+
+void DrawGameOverScreen() {
+    char *gameOverText = "GAME OVER";
+    char *restartText = "Press [R] to Restart";
+    int goWidth = MeasureText(gameOverText, 50);
+    int restartWidth = MeasureText(restartText, 30);
+
+    float pulse = 0.7f + 0.3f * sinf(GetTime() * 3.0f);
+    DrawText(gameOverText, WIDTH / 2 - goWidth / 2 + 2, HEIGHT / 2 - 22, 50,
+             Fade(RED, 0.5f * pulse));
+    DrawText(gameOverText, WIDTH / 2 - goWidth / 2, HEIGHT / 2 - 25, 50, RED);
+
+    DrawText(restartText, WIDTH / 2 - restartWidth / 2 + 2, HEIGHT / 2 + 42, 30,
+             Fade(RAYWHITE, 0.5f));
+    DrawText(restartText, WIDTH / 2 - restartWidth / 2, HEIGHT / 2 + 40, 30, RAYWHITE);
+}
+
+void DrawWinScreen() {
+    char *winText = "VICTORY!";
+    char *restartText = "Press [R] to Restart";
+    int winWidth = MeasureText(winText, 50);
+    int restartWidth = MeasureText(restartText, 30);
+
+    DrawText(winText, WIDTH / 2 - winWidth / 2 + 2, HEIGHT / 2 - 22, 50, Fade(GREEN, 0.5f));
+    DrawText(winText, WIDTH / 2 - winWidth / 2, HEIGHT / 2 - 25, 50, GREEN);
+
+    DrawText(restartText, WIDTH / 2 - restartWidth / 2 + 2, HEIGHT / 2 + 42, 30,
+             Fade(RAYWHITE, 0.5f));
+    DrawText(restartText, WIDTH / 2 - restartWidth / 2, HEIGHT / 2 + 40, 30, RAYWHITE);
 }
 
 int main(void) {
@@ -619,12 +664,14 @@ int main(void) {
     int shootingEnabled = 1;
     double shootingStartTime = 0.0f;
 
+    Color bgColor = (Color){5, 5, 15, 255};
+
     for (int i = 0; i < MAX_PARTICLES; i++)
         PARTICLES[i].lifetime = 0;
 
     while (!WindowShouldClose()) {
         BeginDrawing();
-        ClearBackground((Color){5, 5, 15, 255});
+        ClearBackground(bgColor);
         drawStars();
         if (!gameOver) {
             DrawScore(&score);
@@ -637,24 +684,13 @@ int main(void) {
             checkGameOver(&spaceship, &gameOver);
 
             if (checkWin()) {
-                DrawText("You Win!", WIDTH / 2 - MeasureText("You Win!", 40) / 2, HEIGHT / 2 - 20,
-                         40, GREEN);
-                DrawText("Press [R] to Restart",
-                         WIDTH / 2 - MeasureText("Press [R] to Restart", 40) / 2, HEIGHT / 2 + 60,
-                         40, GREEN);
-
+                DrawWinScreen();
                 if (IsKeyPressed(KEY_R)) {
                     restartGame(&gameOver, &score, &spaceship);
                 }
             }
-
         } else {
-            DrawText("Game Over", WIDTH / 2 - MeasureText("Game Over", 40) / 2, HEIGHT / 2 - 20, 40,
-                     RED);
-            DrawText("Press [R] to Restart",
-                     WIDTH / 2 - MeasureText("Press [R] to Restart", 40) / 2, HEIGHT / 2 + 60, 40,
-                     GREEN);
-
+            DrawGameOverScreen();
             if (IsKeyPressed(KEY_R))
                 restartGame(&gameOver, &score, &spaceship);
         }
