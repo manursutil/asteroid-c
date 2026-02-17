@@ -2,6 +2,8 @@
 
 A classic Asteroids-style arcade game built in C with Raylib
 
+![Preview](/preview.gif)
+
 ## Installation and usage 
 
 1. Install the **Raylib** library by following the official documentation: https://github.com/raysan5/raylib?tab=readme-ov-file#build-and-installation 
