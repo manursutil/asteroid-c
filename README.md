@@ -12,10 +12,11 @@ A classic Asteroids-style arcade game built in C with Raylib
 
 ### Linux or macOS
 
-On Linux or macOS **systems where raylib is available via `pkg-config`**, you can build and run the project using the provided helper script:
+On Linux or macOS **systems where raylib is available via `pkg-config`**, you can build and run the native (non-web) project using the provided helper scripts:
 
 ```bash
-./build-and-run.sh
+./build.sh
+./run.sh
 ```
 
 ### Other platforms / setups
